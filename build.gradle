@@ -12,7 +12,15 @@ buildscript {
     }
 }
 
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'com.cinnober.gradle.semver-git'
+
 allprojects {
+    group = "com.namehillsoftware"
+    archivesBaseName = "artfull"
+    version = project.version
+
     repositories {
         jcenter()
         mavenCentral()
