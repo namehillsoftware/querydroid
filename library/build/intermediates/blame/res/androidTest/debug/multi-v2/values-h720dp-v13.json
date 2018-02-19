@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "/home/david/sandbox/artfull/library/build/intermediates/incremental/mergeDebugAndroidTestResources/merged.dir/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "/home/david/.gradle/caches/transforms-1/files-1.1/appcompat-v7-26.1.0.aar/f59fc832eb7e9454f9fd2566c62fd38d/res/values-h720dp-v13/values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}

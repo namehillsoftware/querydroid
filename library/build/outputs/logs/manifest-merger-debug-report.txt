@@ -1,0 +1,45 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+	package
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:11-48
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:1:1-12:12
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:4:2-10:16
+	android:supportsRtl
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:7:3-29
+	android:label
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:6:3-35
+	android:allowBackup
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml:5:3-29
+uses-sdk
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		ADDED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
+		INJECTED from /home/david/sandbox/artfull/library/src/main/AndroidManifest.xml
