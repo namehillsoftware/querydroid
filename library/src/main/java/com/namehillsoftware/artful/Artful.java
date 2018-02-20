@@ -1,4 +1,4 @@
-package com.namehillsoftware.artfull;
+package com.namehillsoftware.artful;
 
 import android.database.Cursor;
 import android.database.SQLException;
@@ -18,54 +18,54 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class Artfull {
+public class Artful {
 	private final SQLiteDatabase database;
 	private final String sqlQuery;
 	private final HashMap<String, String> parameters = new HashMap<>();
 
-	public Artfull(SQLiteDatabase database, String sqlQuery) {
+	public Artful(SQLiteDatabase database, String sqlQuery) {
 		this.database = database;
 		this.sqlQuery = sqlQuery;
 	}
 
-	public Artfull addParameter(String parameter, String value) {
+	public Artful addParameter(String parameter, String value) {
 		parameters.put(parameter, value);
 		return this;
 	}
 
-	public <E extends Enum<E>> Artfull addParameter(String parameter, Enum<E> value) {
+	public <E extends Enum<E>> Artful addParameter(String parameter, Enum<E> value) {
 		return addParameter(parameter, value != null ? value.name() : null);
 	}
 
-	public Artfull addParameter(String parameter, short value) {
+	public Artful addParameter(String parameter, short value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artfull addParameter(String parameter, int value) {
+	public Artful addParameter(String parameter, int value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artfull addParameter(String parameter, long value) {
+	public Artful addParameter(String parameter, long value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artfull addParameter(String parameter, float value) {
+	public Artful addParameter(String parameter, float value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artfull addParameter(String parameter, double value) {
+	public Artful addParameter(String parameter, double value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artfull addParameter(String parameter, boolean value) {
+	public Artful addParameter(String parameter, boolean value) {
 		return addParameter(parameter, value ? 1 : 0);
 	}
 
-	public Artfull addParameter(String parameter, Object value) {
+	public Artful addParameter(String parameter, Object value) {
 		return addParameter(parameter, value.toString());
 	}
 
-	public Artfull addParameters(Map<String, Object> parameters) {
+	public Artful addParameters(Map<String, Object> parameters) {
 		for (Map.Entry<String, Object> parameter : parameters.entrySet()) {
 			final String key = parameter.getKey();
 			final Object value = parameter.getValue();
