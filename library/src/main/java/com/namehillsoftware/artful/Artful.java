@@ -108,30 +108,24 @@ public class Artful {
 	}
 
 	public <T> List<T> fetch(Class<T> cls) throws SQLException {
-		final Cursor cursor = getCursorForQuery();
-		try {
-			if (!cursor.moveToFirst()) return new ArrayList<>();
+        try (Cursor cursor = getCursorForQuery()) {
+            if (!cursor.moveToFirst()) return new ArrayList<>();
 
-			final ArrayList<T> returnObjects = new ArrayList<>(cursor.getCount());
-			do {
-				returnObjects.add(mapDataFromCursorToClass(cursor, cls));
-			} while (cursor.moveToNext());
+            final ArrayList<T> returnObjects = new ArrayList<>(cursor.getCount());
+            do {
+                returnObjects.add(mapDataFromCursorToClass(cursor, cls));
+            } while (cursor.moveToNext());
 
-			return returnObjects;
-		} finally {
-			cursor.close();
-		}
+            return returnObjects;
+        }
 	}
 
 	public <T> T fetchFirst(Class<T> cls) {
-		final Cursor cursor = getCursorForQuery();
-		try {
-			if (!cursor.moveToFirst() || cursor.getCount() == 0) return null;
+        try (Cursor cursor = getCursorForQuery()) {
+            if (!cursor.moveToFirst() || cursor.getCount() == 0) return null;
 
-			return mapDataFromCursorToClass(cursor, cls);
-		} finally {
-			cursor.close();
-		}
+            return mapDataFromCursorToClass(cursor, cls);
+        }
 	}
 
 	private Cursor getCursorForQuery() {
@@ -175,21 +169,18 @@ public class Artful {
 
 		final String sqlQuery = compatibleSqlQuery.getKey();
 
-		final SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery);
-		try {
-			final String[] args = compatibleSqlQuery.getValue();
-			for (int i = 0; i < args.length; i++) {
-				final String arg = args[i];
-				if (arg != null)
-					sqLiteStatement.bindString(i + 1, arg);
-				else
-					sqLiteStatement.bindNull(i + 1);
-			}
+        try (SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery)) {
+            final String[] args = compatibleSqlQuery.getValue();
+            for (int i = 0; i < args.length; i++) {
+                final String arg = args[i];
+                if (arg != null)
+                    sqLiteStatement.bindString(i + 1, arg);
+                else
+                    sqLiteStatement.bindNull(i + 1);
+            }
 
-			return executeSpecial(sqLiteStatement, sqlQuery);
-		} finally {
-			sqLiteStatement.close();
-		}
+            return executeSpecial(sqLiteStatement, sqlQuery);
+        }
 	}
 
 	private static long executeSpecial(SQLiteStatement sqLiteStatement, String sqlQuery) {
@@ -280,9 +271,9 @@ public class Artful {
 	}
 
 	private static class ClassReflections {
-		public final Map<String, ISetter> setterMap = new HashMap<>();
+		final Map<String, ISetter> setterMap = new HashMap<>();
 
-		public <T extends Class<?>> ClassReflections(T cls) {
+		<T extends Class<?>> ClassReflections(T cls) {
 
 			for (final Field f : cls.getFields()) {
 				setterMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldSetter(f));
@@ -300,7 +291,7 @@ public class Artful {
 		private final Field field;
 		private final Class<?> type;
 
-		public FieldSetter(Field field) {
+		FieldSetter(Field field) {
 			this.field = field;
 			type = field.getType();
 		}
@@ -326,7 +317,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setBoolean(target, parseSqlBoolean(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -340,7 +331,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? parseSqlBoolean(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? parseSqlBoolean(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -353,7 +344,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setShort(target, Short.parseShort(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -367,7 +358,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? Short.parseShort(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? Short.parseShort(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -380,7 +371,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setInt(target, Integer.parseInt(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -394,7 +385,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? Integer.parseInt(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? Integer.parseInt(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -407,7 +398,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setLong(target, Long.parseLong(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -421,7 +412,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? Long.parseLong(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? Long.parseLong(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -434,7 +425,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setFloat(target, Float.parseFloat(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -448,7 +439,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? Float.parseFloat(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? Float.parseFloat(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -461,7 +452,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.setDouble(target, Double.parseDouble(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -475,7 +466,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								field.set(target, !isSqlValueNull(value) ? Double.parseDouble(value) : null);
+								field.set(target, isSqlValueNotNull(value) ? Double.parseDouble(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							}
@@ -501,7 +492,7 @@ public class Artful {
 					protected final SetFields create() {
 						return (field, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									field.set(target, Enum.valueOf((Class<? extends Enum>) field.getType(), value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -523,7 +514,7 @@ public class Artful {
 		private final Method method;
 		private final Class<?> type;
 
-		public MethodSetter(Method method) {
+		MethodSetter(Method method) {
 			this.method = method;
 			type = method.getParameterTypes()[0];
 		}
@@ -549,7 +540,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, parseSqlBoolean(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -565,7 +556,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? parseSqlBoolean(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? parseSqlBoolean(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -580,7 +571,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Short.parseShort(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -596,7 +587,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? Short.parseShort(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? Short.parseShort(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -611,7 +602,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Integer.parseInt(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -627,7 +618,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? Integer.parseInt(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? Integer.parseInt(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -642,7 +633,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Long.parseLong(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -658,7 +649,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? Long.parseLong(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? Long.parseLong(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -673,7 +664,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Float.parseFloat(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -689,7 +680,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? Float.parseFloat(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? Float.parseFloat(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -704,7 +695,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Double.parseDouble(value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -720,7 +711,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								method.invoke(target, !isSqlValueNull(value) ? Double.parseDouble(value) : null);
+								method.invoke(target, isSqlValueNotNull(value) ? Double.parseDouble(value) : null);
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
 							} catch (InvocationTargetException e) {
@@ -750,7 +741,7 @@ public class Artful {
 					protected final SetMethods create() {
 						return (method, target, value) -> {
 							try {
-								if (!isSqlValueNull(value))
+								if (isSqlValueNotNull(value))
 									method.invoke(target, Enum.valueOf((Class<? extends Enum>) method.getParameterTypes()[0], value));
 							} catch (IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -774,7 +765,7 @@ public class Artful {
 		return Integer.parseInt(booleanValue) != 0;
 	}
 
-	private static boolean isSqlValueNull(String sqlValue) {
-		return sqlValue == null || sqlValue.equals("NULL");
+	private static boolean isSqlValueNotNull(String sqlValue) {
+		return sqlValue != null && !"NULL".equals(sqlValue);
 	}
 }
