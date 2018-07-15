@@ -123,19 +123,19 @@ And Artful will gladly serialize this class, following some simple serialization
 1. Fields that you wish to have serialized/deserialized must be `public`, and they **must** match the name of the column you wish to deserialize
 2. Getter/Setter methods that you wish to use instead for serialization/deserialization must be `public`, and they **must** follow these rules:
 
-  1. Getters must be named either `getFieldName()`, or `isFieldTrue()` for `boolean` fields
-  2. Setters must be named `setFieldName(Fieldtype value)`, including `boolean` fields, e.g. `setIsFieldTrue(boolean value)`
+    1. Getters must be named either `getFieldName()`, or `isFieldTrue()` for `boolean` fields
+    2. Setters must be named `setFieldName(Fieldtype value)`, including `boolean` fields, e.g. `setIsFieldTrue(boolean value)`
   
 3. Either fields or the getters/setters can basically be the primitive Java types:
 
-  1. `int`/`Integer`
-  2. `long`/`Long`
-  3. `boolean`/`Boolean`
-  4. `short`/`Short`
-  5. `double`/`Double`
-  6. `String`
-  7. `Enum`
-    `Enum` fields, as always, deserve special mention: `Enum` fields are serialized to/from `String` fields.
+    1. `int`/`Integer`
+    2. `long`/`Long`
+    3. `boolean`/`Boolean`
+    4. `short`/`Short`
+    5. `double`/`Double`
+    6. `String`
+    7. `Enum`
+      `Enum` fields, as always, deserve special mention: `Enum` fields are serialized to/from `String` fields.
 
 ## Commands
 
