@@ -4,7 +4,7 @@ ADDED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml:1:1-5
 INJECTED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml:1:1-5:12
 INJECTED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml:1:1-5:12
 	package
-		ADDED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml:1:11-49
+		ADDED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml:1:11-48
 		INJECTED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml
 		INJECTED from /home/david/sandbox/artful/library/src/main/AndroidManifest.xml
 application
