@@ -16,7 +16,7 @@ What problems does it solve?
 
 The standard Android library has for ages had numerous ways to pull back data from its built-in SQLite database. However, none of these ways either a) are easy to use, or b) give developers the power they need to develop performant applications.
 
-In the C# world, developers have long had the excellent [Dapper](https://github.com/StackExchange/dapper-dot-net) library, which maps C# types nicely to and from Java objects without getting in the way of how you want to write your queries. Artful started off with Dapper as an inspiration and made querying your data in the built-in SQLite library much more natural and cleaner, artfully!
+In the C# world, developers have long had the excellent [Dapper](https://github.com/StackExchange/dapper-dot-net) library, which maps C# types nicely to and from C# objects without getting in the way of how you want to write your queries. Artful started off with Dapper as an inspiration and made querying your data in the built-in SQLite library much more natural and cleaner, artfully!
 
 # Installation
 
