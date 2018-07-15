@@ -122,9 +122,12 @@ And Artful will gladly serialize this class, following some simple serialization
 
 1. Fields that you wish to have serialized/deserialized must be `public`, and they **must** match the name of the column you wish to deserialize
 2. Getter/Setter methods that you wish to use instead for serialization/deserialization must be `public`, and they **must** follow these rules:
+
   1. Getters must be named either `getFieldName()`, or `isFieldTrue()` for `boolean` fields
   2. Setters must be named `setFieldName(Fieldtype value)`, including `boolean` fields, e.g. `setIsFieldTrue(boolean value)`
+  
 3. Either fields or the getters/setters can basically be the primitive Java types:
+
   1. `int`/`Integer`
   2. `long`/`Long`
   3. `boolean`/`Boolean`
