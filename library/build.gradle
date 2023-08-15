@@ -19,6 +19,11 @@ if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') 
     isRelease = false
 }
 
+def sonatypeUsername = findProperty("sonatypeUsername")
+def sonatypePassword = findProperty("sonatypePassword")
+def signingKey = findProperty("signingKey")?.replace("\\n", "\n")
+def signingPassword = findProperty("signingPassword")
+
 android {
     namespace = "com.namehillsoftware.artful"
 
