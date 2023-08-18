@@ -12,7 +12,10 @@ version = versionDetails.lastTag
 // so use this custom algorithm for version snapshot/not-snapshot detection
 def isRelease = true
 if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') {
-    version += "+$versionDetails.branchName-$versionDetails.commitDistance-SNAPSHOT"
+    version += "+"
+    if (versionDetails.branchName != null)
+        version += versionDetails.branchName
+    version += "-$versionDetails.commitDistance-SNAPSHOT"
     isRelease = false
 }
 
@@ -51,6 +54,12 @@ android {
             }
         }
     }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
@@ -70,4 +79,18 @@ dependencies {
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit5_version"
     testRuntimeOnly "org.junit.vintage:junit-vintage-engine:$junit5_version"
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.namehillsoftware'
+            artifactId = 'artful'
+            version = version
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
 }
