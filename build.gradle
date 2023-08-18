@@ -24,7 +24,7 @@ apply plugin: 'signing'
 
 allprojects {
     group = "com.namehillsoftware"
-    archivesBaseName = "artful"
+    archivesBaseName = "querydroid"
 
     repositories {
         mavenCentral()

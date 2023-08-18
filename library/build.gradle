@@ -19,7 +19,7 @@ if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') 
 }
 
 android {
-    namespace = "com.namehillsoftware.artful"
+    namespace = "com.namehillsoftware.querydroid"
 
     compileSdkVersion 33
 
@@ -27,7 +27,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 33
         versionName = version
-        archivesBaseName = "artful"
+        archivesBaseName = "querydroid"
     }
 
     compileOptions {

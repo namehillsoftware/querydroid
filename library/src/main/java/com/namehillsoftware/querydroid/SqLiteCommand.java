@@ -1,4 +1,4 @@
-package com.namehillsoftware.artful;
+package com.namehillsoftware.querydroid;
 
 import android.database.Cursor;
 import android.database.SQLException;
@@ -18,56 +18,56 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class Artful {
+public class SqLiteCommand {
 	private final SQLiteDatabase database;
-	private final String sqlQuery;
+	private final String command;
 	private final HashMap<String, String> parameters = new HashMap<>();
 
-	public Artful(SQLiteDatabase database, String sqlQuery) {
+	public SqLiteCommand(SQLiteDatabase database, String command) {
 		this.database = database;
-		this.sqlQuery = sqlQuery;
+		this.command = command;
 	}
 
-	public Artful addParameter(String parameter, String value) {
+	public SqLiteCommand addParameter(String parameter, String value) {
 		parameters.put(parameter, value);
 		return this;
 	}
 
-	public <E extends Enum<E>> Artful addParameter(String parameter, Enum<E> value) {
+	public <E extends Enum<E>> SqLiteCommand addParameter(String parameter, Enum<E> value) {
 		return addParameter(parameter, value != null ? value.name() : null);
 	}
 
-	public Artful addParameter(String parameter, short value) {
+	public SqLiteCommand addParameter(String parameter, short value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artful addParameter(String parameter, int value) {
+	public SqLiteCommand addParameter(String parameter, int value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artful addParameter(String parameter, long value) {
+	public SqLiteCommand addParameter(String parameter, long value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artful addParameter(String parameter, float value) {
+	public SqLiteCommand addParameter(String parameter, float value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artful addParameter(String parameter, double value) {
+	public SqLiteCommand addParameter(String parameter, double value) {
 		return addParameter(parameter, String.valueOf(value));
 	}
 
-	public Artful addParameter(String parameter, boolean value) {
+	public SqLiteCommand addParameter(String parameter, boolean value) {
 		return addParameter(parameter, value ? 1 : 0);
 	}
 
-	public Artful addParameter(String parameter, Boolean value) {
+	public SqLiteCommand addParameter(String parameter, Boolean value) {
 		return addNullable(parameter, value)
 			? this
 			: addParameter(parameter, value.booleanValue());
 	}
 
-	public Artful addParameter(String parameter, Object value) {
+	public SqLiteCommand addParameter(String parameter, Object value) {
 		if (addNullable(parameter, value)) {
 			return this;
 		}
@@ -116,7 +116,7 @@ public class Artful {
 		return addParameter(parameter, value.toString());
 	}
 
-	public Artful addParameters(Map<String, Object> parameters) {
+	public SqLiteCommand addParameters(Map<String, Object> parameters) {
 		for (Map.Entry<String, Object> parameter : parameters.entrySet()) {
 			final String key = parameter.getKey();
 			final Object value = parameter.getValue();
@@ -148,6 +148,25 @@ public class Artful {
         }
 	}
 
+	public long execute() throws SQLException {
+		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
+
+		final String sqlQuery = compatibleSqlQuery.getKey();
+
+		try (SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery)) {
+			final String[] args = compatibleSqlQuery.getValue();
+			for (int i = 0; i < args.length; i++) {
+				final String arg = args[i];
+				if (arg != null)
+					sqLiteStatement.bindString(i + 1, arg);
+				else
+					sqLiteStatement.bindNull(i + 1);
+			}
+
+			return executeSpecial(sqLiteStatement, sqlQuery);
+		}
+	}
+
 	private boolean addNullable(String parameter, Object value) {
 		if (value == null) {
 			parameters.put(parameter, null);
@@ -158,7 +177,7 @@ public class Artful {
 	}
 
 	private Cursor getCursorForQuery() {
-		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(sqlQuery, parameters);
+		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
 
 		return database.rawQuery(compatibleSqlQuery.getKey(), compatibleSqlQuery.getValue());
 	}
@@ -191,25 +210,6 @@ public class Artful {
 		}
 
 		return newObject;
-	}
-
-	public long execute() throws SQLException {
-		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(sqlQuery, parameters);
-
-		final String sqlQuery = compatibleSqlQuery.getKey();
-
-        try (SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery)) {
-            final String[] args = compatibleSqlQuery.getValue();
-            for (int i = 0; i < args.length; i++) {
-                final String arg = args[i];
-                if (arg != null)
-                    sqLiteStatement.bindString(i + 1, arg);
-                else
-                    sqLiteStatement.bindNull(i + 1);
-            }
-
-            return executeSpecial(sqLiteStatement, sqlQuery);
-        }
 	}
 
 	private static long executeSpecial(SQLiteStatement sqLiteStatement, String sqlQuery) {
@@ -338,12 +338,12 @@ public class Artful {
 
 		private static final AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>> setters = new AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>>() {
 			@Override
-			protected final HashMap<Type, AbstractSynchronousLazy<SetFields>> create() {
+			protected HashMap<Type, AbstractSynchronousLazy<SetFields>> create() {
 				final HashMap<Type, AbstractSynchronousLazy<SetFields>> newHashMap = new HashMap<>();
 
-				newHashMap.put(Boolean.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Boolean.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -357,7 +357,7 @@ public class Artful {
 
 				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? parseSqlBoolean(value) : null);
@@ -370,7 +370,7 @@ public class Artful {
 
 				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -384,7 +384,7 @@ public class Artful {
 
 				newHashMap.put(Short.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? Short.parseShort(value) : null);
@@ -397,7 +397,7 @@ public class Artful {
 
 				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -411,7 +411,7 @@ public class Artful {
 
 				newHashMap.put(Integer.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? Integer.parseInt(value) : null);
@@ -424,7 +424,7 @@ public class Artful {
 
 				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -438,7 +438,7 @@ public class Artful {
 
 				newHashMap.put(Long.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? Long.parseLong(value) : null);
@@ -451,7 +451,7 @@ public class Artful {
 
 				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -465,7 +465,7 @@ public class Artful {
 
 				newHashMap.put(Float.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? Float.parseFloat(value) : null);
@@ -478,7 +478,7 @@ public class Artful {
 
 				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -492,7 +492,7 @@ public class Artful {
 
 				newHashMap.put(Double.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, isSqlValueNotNull(value) ? Double.parseDouble(value) : null);
@@ -505,7 +505,7 @@ public class Artful {
 
 				newHashMap.put(String.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								field.set(target, value);
@@ -518,7 +518,7 @@ public class Artful {
 
 				newHashMap.put(Enum.class, new AbstractSynchronousLazy<SetFields>() {
 					@Override
-					protected final SetFields create() {
+					protected SetFields create() {
 						return (field, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -561,12 +561,12 @@ public class Artful {
 
 		private static final AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>> setters = new AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>>() {
 			@Override
-			protected final HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>> create() {
+			protected HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>> create() {
 				final HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>> newHashMap = new HashMap<>();
 
 				newHashMap.put(Boolean.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -582,7 +582,7 @@ public class Artful {
 
 				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? parseSqlBoolean(value) : null);
@@ -597,7 +597,7 @@ public class Artful {
 
 				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -613,7 +613,7 @@ public class Artful {
 
 				newHashMap.put(Short.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Short.parseShort(value) : null);
@@ -628,7 +628,7 @@ public class Artful {
 
 				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -644,7 +644,7 @@ public class Artful {
 
 				newHashMap.put(Integer.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Integer.parseInt(value) : null);
@@ -659,7 +659,7 @@ public class Artful {
 
 				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -675,7 +675,7 @@ public class Artful {
 
 				newHashMap.put(Long.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Long.parseLong(value) : null);
@@ -690,7 +690,7 @@ public class Artful {
 
 				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -706,7 +706,7 @@ public class Artful {
 
 				newHashMap.put(Float.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Float.parseFloat(value) : null);
@@ -721,7 +721,7 @@ public class Artful {
 
 				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))
@@ -737,7 +737,7 @@ public class Artful {
 
 				newHashMap.put(Double.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Double.parseDouble(value) : null);
@@ -752,7 +752,7 @@ public class Artful {
 
 				newHashMap.put(String.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, value);
@@ -767,7 +767,7 @@ public class Artful {
 
 				newHashMap.put(Enum.class, new AbstractSynchronousLazy<SetMethods>() {
 					@Override
-					protected final SetMethods create() {
+					protected SetMethods create() {
 						return (method, target, value) -> {
 							try {
 								if (isSqlValueNotNull(value))

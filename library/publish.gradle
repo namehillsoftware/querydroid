@@ -10,7 +10,7 @@ def signingPassword = findProperty("signingPassword")
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifactId = 'artful'
+            artifactId = 'querydroid'
             from components.release
             versionMapping {
                 usage('java-api') {
@@ -21,9 +21,9 @@ publishing {
                 }
             }
             pom {
-                name = 'robodatamapper'
+                name = 'querydroid'
                 description = 'Map SQLite Java objects.'
-                url = 'https://github.com/namehillsoftware/handoff'
+                url = 'https://github.com/namehillsoftware/querydroid'
                 licenses {
                     license {
                         name = "The Apache Software License, Version 2.0"
@@ -38,7 +38,7 @@ publishing {
                     }
                 }
                 scm {
-                    url = 'https://github.com/namehillsoftware/handoff'
+                    url = 'https://github.com/namehillsoftware/querydroid'
                 }
             }
         }
