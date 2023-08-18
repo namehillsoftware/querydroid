@@ -1,5 +1,4 @@
 plugins {
-    id 'maven-publish'
     id 'org.jetbrains.kotlin.android'
     id 'com.palantir.git-version' version '3.0.0'
 }
@@ -10,7 +9,7 @@ def versionDetails = versionDetails()
 version = versionDetails.lastTag
 // .dockerignore and .gitignore may differ, which can lead to a clean branch looking dirty,
 // so use this custom algorithm for version snapshot/not-snapshot detection
-def isRelease = true
+ext.isRelease = true
 if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') {
     version += "+"
     if (versionDetails.branchName != null)
@@ -18,11 +17,6 @@ if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') 
     version += "-$versionDetails.commitDistance-SNAPSHOT"
     isRelease = false
 }
-
-def sonatypeUsername = findProperty("sonatypeUsername")
-def sonatypePassword = findProperty("sonatypePassword")
-def signingKey = findProperty("signingKey")?.replace("\\n", "\n")
-def signingPassword = findProperty("signingPassword")
 
 android {
     namespace = "com.namehillsoftware.artful"

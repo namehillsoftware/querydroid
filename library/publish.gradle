@@ -1,0 +1,75 @@
+plugins {
+    id 'maven-publish'
+}
+
+def sonatypeUsername = findProperty("sonatypeUsername")
+def sonatypePassword = findProperty("sonatypePassword")
+def signingKey = findProperty("signingKey")?.replace("\\n", "\n")
+def signingPassword = findProperty("signingPassword")
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'artful'
+            from components.release
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name = 'robodatamapper'
+                description = 'Map SQLite Java objects.'
+                url = 'https://github.com/namehillsoftware/handoff'
+                licenses {
+                    license {
+                        name = "The Apache Software License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'david'
+                        name = 'David Vedvick'
+                        email = 'dvedvick@gmail.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/namehillsoftware/handoff'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // change URLs to point to your repos, e.g. http://my.org/repo
+            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url = isRelease ? releasesRepoUrl : snapshotsRepoUrl
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username = sonatypeUsername
+            password = sonatypePassword
+        }
+    }
+}
+
+signing {
+    required { signingKey?.trim() && gradle.taskGraph.hasTask("publish") }
+
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign configurations.archives
+    sign publishing.publications.mavenJava
+}
