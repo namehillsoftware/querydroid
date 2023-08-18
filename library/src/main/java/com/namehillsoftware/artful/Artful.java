@@ -61,7 +61,58 @@ public class Artful {
 		return addParameter(parameter, value ? 1 : 0);
 	}
 
+	public Artful addParameter(String parameter, Boolean value) {
+		return addNullable(parameter, value)
+			? this
+			: addParameter(parameter, value.booleanValue());
+	}
+
 	public Artful addParameter(String parameter, Object value) {
+		if (addNullable(parameter, value)) {
+			return this;
+		}
+
+		final Class<?> valueClass = value.getClass();
+
+		if (Boolean.TYPE.equals(valueClass)) {
+			addParameter(parameter, (boolean)value);
+			return this;
+		}
+
+		if (Boolean.class.equals(valueClass)) {
+			addParameter(parameter, (Boolean) value);
+			return this;
+		}
+
+		if (Short.TYPE.equals(valueClass)) {
+			addParameter(parameter, (short)value);
+			return this;
+		}
+
+		if (Integer.TYPE.equals(valueClass)) {
+			addParameter(parameter, (int)value);
+			return this;
+		}
+
+		if (Long.TYPE.equals(valueClass)) {
+			addParameter(parameter, (long)value);
+			return this;
+		}
+
+		if (Float.TYPE.equals(valueClass)) {
+			addParameter(parameter, (float)value);
+			return this;
+		}
+
+		if (Double.TYPE.equals(valueClass)) {
+			addParameter(parameter, (double)value);
+			return this;
+		}
+
+		if (valueClass.isEnum()) {
+			addParameter(parameter, (Enum<?>) value);
+		}
+
 		return addParameter(parameter, value.toString());
 	}
 
@@ -69,37 +120,6 @@ public class Artful {
 		for (Map.Entry<String, Object> parameter : parameters.entrySet()) {
 			final String key = parameter.getKey();
 			final Object value = parameter.getValue();
-			final Class<?> valueClass = value.getClass();
-
-			if (Boolean.TYPE.equals(valueClass)) {
-				addParameter(key, (boolean)value);
-				continue;
-			}
-
-			if (Short.TYPE.equals(valueClass)) {
-				addParameter(key, (short)value);
-				continue;
-			}
-
-			if (Integer.TYPE.equals(valueClass)) {
-				addParameter(key, (int)value);
-				continue;
-			}
-
-			if (Long.TYPE.equals(valueClass)) {
-				addParameter(key, (long)value);
-				continue;
-			}
-
-			if (Float.TYPE.equals(valueClass)) {
-				addParameter(key, (float)value);
-				continue;
-			}
-
-			if (Double.TYPE.equals(valueClass)) {
-				addParameter(key, (double)value);
-				continue;
-			}
 
 			addParameter(key, value);
 		}
@@ -126,6 +146,15 @@ public class Artful {
 
             return mapDataFromCursorToClass(cursor, cls);
         }
+	}
+
+	private boolean addNullable(String parameter, Object value) {
+		if (value == null) {
+			parameters.put(parameter, null);
+			return true;
+		}
+
+		return false;
 	}
 
 	private Cursor getCursorForQuery() {
