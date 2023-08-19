@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteAssistants {
 
@@ -53,18 +54,25 @@ public class SqLiteAssistants {
         }
     }
 
+    private static final ConcurrentHashMap<Class<?>, String> cachedInsertStatements = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Class<?>, String> cachedUpdateStatements = new ConcurrentHashMap<>();
+
     public static <T> long insertValue(SQLiteDatabase database, String table, T value) throws InvocationTargetException, IllegalAccessException {
         final InsertBuilder insertBuilder = InsertBuilder.fromTable(table);
 
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
-        for (String getterKey : classReflections.getterMap.keySet()) {
-            if (!Objects.equals(getterKey, "id"))
-                insertBuilder.addColumn(getterKey);
-        }
+        String insertCommand = cachedInsertStatements.get(cls);
+        if (insertCommand == null) {
+            for (String getterKey : classReflections.getterMap.keySet()) {
+                if (!Objects.equals(getterKey, "id"))
+                    insertBuilder.addColumn(getterKey);
+            }
 
-        final String insertCommand = insertBuilder.buildQuery();
+            insertCommand = insertBuilder.buildQuery();
+            cachedInsertStatements.put(cls, insertCommand);
+        }
 
         final SqLiteCommand command = new SqLiteCommand(database, insertCommand);
         for (Map.Entry<String, Method> getterEntry : classReflections.getterMap.entrySet()) {
@@ -80,16 +88,20 @@ public class SqLiteAssistants {
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
-        for (String getterKey : classReflections.getterMap.keySet()) {
-            if (!Objects.equals(getterKey, "id"))
-                updateBuilder.addSetter(getterKey);
+        String updateCommand = cachedUpdateStatements.get(cls);
+        if (updateCommand == null) {
+            for (String getterKey : classReflections.getterMap.keySet()) {
+                if (!Objects.equals(getterKey, "id"))
+                    updateBuilder.addSetter(getterKey);
+            }
+
+            updateBuilder.setFilter("where id = @id");
+
+            updateCommand = updateBuilder.buildQuery();
+            cachedUpdateStatements.put(cls, updateCommand);
         }
 
-        updateBuilder.setFilter("where id = @id");
-
-        final String insertCommand = updateBuilder.buildQuery();
-
-        final SqLiteCommand command = new SqLiteCommand(database, insertCommand);
+        final SqLiteCommand command = new SqLiteCommand(database, updateCommand);
         for (Map.Entry<String, Method> getterEntry : classReflections.getterMap.entrySet()) {
             command.addParameter(getterEntry.getKey(), getterEntry.getValue().invoke(value));
         }
