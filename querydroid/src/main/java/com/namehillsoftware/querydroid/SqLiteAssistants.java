@@ -2,6 +2,8 @@ package com.namehillsoftware.querydroid;
 
 import android.database.sqlite.SQLiteDatabase;
 
+import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SqLiteAssistants {
 
     private static class ClassCache {
-        private static final Map<Class<?>, ClassReflections> classCache = new HashMap<>();
+        private static final Map<Class<?>, ClassReflections> classCache = new ConcurrentHashMap<>();
 
-        static synchronized <T extends Class<?>> ClassReflections getReflections(T cls) {
+        static <T extends Class<?>> ClassReflections getReflections(T cls) {
             if (!classCache.containsKey(cls))
                 classCache.put(cls, new ClassReflections(cls));
 
@@ -26,32 +28,78 @@ public class SqLiteAssistants {
     }
 
     private static class ClassReflections {
-
-        final Map<String, Field> fieldMap = new HashMap<>();
-        final Map<String, Method> getterMap = new HashMap<>();
+        final AbstractSynchronousLazy<Map<String, IGetter>> getterMap;
 
         <T extends Class<?>> ClassReflections(T cls) {
-            for (final Field f : cls.getFields()) {
-                fieldMap.put(f.getName().toLowerCase(Locale.ROOT), f);
-            }
+            getterMap = new AbstractSynchronousLazy<>() {
+                @Override
+                protected Map<String, IGetter> create() throws Throwable {
+                    final HashMap<String, IGetter> newMap = new HashMap<>();
+                    for (final Field f : cls.getFields()) {
+                        newMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldGetter(f));
+                    }
 
-            // prepare methods. Methods will override fields, if both exists.
-            for (final Method method : cls.getMethods()) {
-                final String name = method.getName();
-                if (name.equals("getClass")) continue;
+                    // prepare methods. Methods will override fields, if both exists.
+                    for (final Method method : cls.getMethods()) {
+                        final String name = method.getName();
+                        if (name.equals("getClass")) continue;
 
-                if (name.startsWith("get")) {
-                    getterMap.put(name.replaceFirst("get", "").toLowerCase(Locale.ROOT), method);
-                    continue;
+                        if (name.startsWith("get")) {
+                            newMap.put(name.replaceFirst("get", "").toLowerCase(Locale.ROOT), new MethodGetter(method));
+                            continue;
+                        }
+
+                        if (name.startsWith("is")) {
+                            final Class<?> returnCls = method.getReturnType();
+                            if (Boolean.class.equals(returnCls) || Boolean.TYPE.equals(returnCls))
+                                newMap.put(name.toLowerCase(Locale.ROOT), new MethodGetter(method));
+                        }
+                    }
+
+                    return newMap;
                 }
+            };
+        }
+    }
 
-                if (name.startsWith("is")) {
-                    final Class<?> returnCls = method.getReturnType();
-                    if (Boolean.class.equals(returnCls) || Boolean.TYPE.equals(returnCls))
-                        getterMap.put(name.toLowerCase(Locale.ROOT), method);
-                }
+    private static class FieldGetter implements IGetter {
+       private final Field receiver;
+
+        private FieldGetter(Field receiver) {
+            this.receiver = receiver;
+        }
+
+        @Override
+        public Object get(Object target) {
+            try {
+                return receiver.get(target);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
+    }
+
+    private static class MethodGetter implements IGetter {
+        private final Method receiver;
+
+        private MethodGetter(Method receiver) {
+            this.receiver = receiver;
+        }
+
+        @Override
+        public Object get(Object target) {
+            try {
+                return receiver.invoke(target);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private interface IGetter {
+        Object get(Object target);
     }
 
     private static final ConcurrentHashMap<Class<?>, String> cachedInsertStatements = new ConcurrentHashMap<>();
@@ -64,8 +112,9 @@ public class SqLiteAssistants {
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
         String insertCommand = cachedInsertStatements.get(cls);
+        Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         if (insertCommand == null) {
-            for (String getterKey : classReflections.getterMap.keySet()) {
+            for (String getterKey : getterMap.keySet()) {
                 if (!Objects.equals(getterKey, "id"))
                     insertBuilder.addColumn(getterKey);
             }
@@ -75,8 +124,8 @@ public class SqLiteAssistants {
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, insertCommand);
-        for (Map.Entry<String, Method> getterEntry : classReflections.getterMap.entrySet()) {
-            command.addParameter(getterEntry.getKey(), getterEntry.getValue().invoke(value));
+        for (Map.Entry<String, IGetter> getterEntry : getterMap.entrySet()) {
+            command.addParameter(getterEntry.getKey(), getterEntry.getValue().get(value));
         }
 
         return command.execute();
@@ -89,8 +138,9 @@ public class SqLiteAssistants {
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
         String updateCommand = cachedUpdateStatements.get(cls);
+        Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         if (updateCommand == null) {
-            for (String getterKey : classReflections.getterMap.keySet()) {
+            for (String getterKey : getterMap.keySet()) {
                 if (!Objects.equals(getterKey, "id"))
                     updateBuilder.addSetter(getterKey);
             }
@@ -102,8 +152,8 @@ public class SqLiteAssistants {
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, updateCommand);
-        for (Map.Entry<String, Method> getterEntry : classReflections.getterMap.entrySet()) {
-            command.addParameter(getterEntry.getKey(), getterEntry.getValue().invoke(value));
+        for (Map.Entry<String, IGetter> getterEntry : getterMap.entrySet()) {
+            command.addParameter(getterEntry.getKey(), getterEntry.getValue().get(value));
         }
 
         return command.execute();
