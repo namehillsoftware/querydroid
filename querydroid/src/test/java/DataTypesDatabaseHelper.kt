@@ -10,6 +10,8 @@ class DataTypesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, "tes
 			`id` INTEGER PRIMARY KEY AUTOINCREMENT ,
 			`IntegerColumn` INTEGER,
 			`LongColumn` BIGINT,
+            `FloatColumn` REAL,
+            `DoubleColumn` DOUBLE,
 			`BooleanColumn` SMALLINT ,
 			`StringColumn` VARCHAR )""")
     }
@@ -18,10 +20,12 @@ class DataTypesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, "tes
     }
 }
 
-class DataTypes {
-    var id = 0
-    var integerColumn = 0
-    var longColumn = 0L
-    var booleanColumn = false
-    var stringColumn: String? = null
-}
+data class DataTypes(
+    var id: Int = 0,
+    var integerColumn: Int = 0,
+    var longColumn: Long = 0L,
+    var floatColumn: Float = 0f,
+    var doubleColumn: Double = 0.0,
+    var booleanColumn: Boolean = false,
+    var stringColumn: String? = null,
+)
