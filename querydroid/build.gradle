@@ -1,0 +1,160 @@
+plugins {
+    id 'org.jetbrains.kotlin.android'
+    id 'com.palantir.git-version' version '3.0.0'
+    id 'maven-publish'
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'signing'
+
+def versionDetails = versionDetails()
+version = versionDetails.lastTag
+// .dockerignore and .gitignore may differ, which can lead to a clean branch looking dirty,
+// so use this custom algorithm for version snapshot/not-snapshot detection
+def isRelease = true
+if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') {
+    version += "+"
+
+    def branchName = versionDetails.branchName
+    if (branchName != null) {
+        version += branchName.replace("/", "~")
+    }
+
+    version += "-$versionDetails.commitDistance-SNAPSHOT"
+    isRelease = false
+}
+
+android {
+    namespace = "com.namehillsoftware.querydroid"
+
+    compileSdkVersion 33
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 33
+        versionName = version
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+            all {
+                maxHeapSize = "2048m"
+                maxParallelForks = 3
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+            )
+        }
+    }
+}
+
+dependencies {
+    def junit5_version = '5.10.0'
+
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    testImplementation 'junit:junit:4.13.2'
+    implementation 'com.namehillsoftware:lazy-j:0.11.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit5_version"
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.robolectric:robolectric:4.9'
+    testImplementation 'androidx.test.ext:junit-ktx:1.1.5'
+    testImplementation 'androidx.test:core:1.5.0'
+    testImplementation 'io.mockk:mockk:1.13.5'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit5_version"
+    testRuntimeOnly "org.junit.vintage:junit-vintage-engine:$junit5_version"
+}
+
+// If you want to publish your sources as well
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from android.sourceSets.main.java.srcDirs
+}
+
+artifacts {
+    archives androidSourcesJar
+}
+
+def signingKey = findProperty("signingKey")?.replace("\\n", "\n")
+def signingPassword = findProperty("signingPassword")
+
+afterEvaluate {
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+
+                groupId = "com.namehillsoftware"
+                artifactId = 'querydroid'
+                version = version
+
+                from components.release
+                artifact androidSourcesJar
+
+                pom {
+                    name = 'querydroid'
+                    description = 'Map SQLite Java objects.'
+                    url = 'https://github.com/namehillsoftware/querydroid'
+                    licenses {
+                        license {
+                            name = "The Apache Software License, Version 2.0"
+                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'david'
+                            name = 'David Vedvick'
+                            email = 'dvedvick@gmail.com'
+                        }
+                    }
+                    scm {
+                        url = 'https://github.com/namehillsoftware/querydroid'
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                // change URLs to point to your repos, e.g. http://my.org/repo
+                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+                url = isRelease ? releasesRepoUrl : snapshotsRepoUrl
+                credentials {
+                    username sonatypeUsername
+                    password sonatypePassword
+                }
+            }
+        }
+    }
+}
+
+signing {
+    required { signingKey?.trim() && gradle.taskGraph.hasTask("publish") }
+
+    useInMemoryPgpKeys(signingKey, signingPassword)
+
+    sign publishing.publications
+}

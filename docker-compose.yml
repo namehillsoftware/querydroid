@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   gradle:
-    image: ${TAG_ID:-artful_build}
+    image: ${TAG_ID:-querydroid_build}
     build:
       context: .
     volumes:
