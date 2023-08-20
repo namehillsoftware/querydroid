@@ -12,7 +12,7 @@ version = versionDetails.lastTag
 // .dockerignore and .gitignore may differ, which can lead to a clean branch looking dirty,
 // so use this custom algorithm for version snapshot/not-snapshot detection
 def isRelease = true
-if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'master') {
+if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'main') {
     version += "+"
 
     def branchName = versionDetails.branchName
