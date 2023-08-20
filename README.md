@@ -36,7 +36,7 @@ Then add Artful into your Gradle file's dependencies section:
 
 ```groovy
 dependencies {
-    implementation 'com.github.namehillsoftware:artful:0.2.0'
+    implementation 'com.github.namehillsoftware:querydroid:0.3.2'
 }
 ```
 

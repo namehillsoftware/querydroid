@@ -20,12 +20,19 @@ plugins {
 
 group = "com.namehillsoftware"
 
-apply plugin: 'signing'
+ext.sonatypeUsername = findProperty("sonatypeUsername")
+ext.sonatypePassword = findProperty("sonatypePassword")
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username = sonatypeUsername
+            password = sonatypePassword
+        }
+    }
+}
 
 allprojects {
-    group = "com.namehillsoftware"
-    archivesBaseName = "artful"
-
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }

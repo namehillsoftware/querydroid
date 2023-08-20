@@ -4,7 +4,7 @@ import DataTypes
 import DataTypesDatabaseHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.namehillsoftware.artful.Artful
+import com.namehillsoftware.querydroid.SqLiteCommand
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,7 +17,7 @@ class WhenAddingATrueValueThroughObjectMethod {
     fun `then the value is correct`() {
         DataTypesDatabaseHelper(ApplicationProvider.getApplicationContext()).use { databaseHelper ->
             databaseHelper.writableDatabase.use {
-                val insert = Artful(
+                val insert = SqLiteCommand(
                     it,
                     "INSERT INTO $tableName (`BooleanColumn`) VALUES (@BoolValue)"
                 )
@@ -25,7 +25,7 @@ class WhenAddingATrueValueThroughObjectMethod {
             }
 
             databaseHelper.readableDatabase.use {
-                val resultQuery = Artful(
+                val resultQuery = SqLiteCommand(
                     it,
                     "SELECT * FROM $tableName"
                 )
