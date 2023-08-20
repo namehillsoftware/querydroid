@@ -1,6 +1,6 @@
-# Artful
+# QueryDroid
 
-A deft library skilled in the art of serializing SQLite queries to and from Java objects:
+A library skilled that helps with serializing SQLite queries to and from Java objects:
 
 ```java
 public Collection<Library> getLibraries(Context context) {
@@ -16,38 +16,26 @@ What problems does it solve?
 
 The standard Android library has for ages had numerous ways to pull back data from its built-in SQLite database. However, none of these ways either a) are easy to use, or b) give developers the power they need to develop performant applications.
 
-In the C# world, developers have long had the excellent [Dapper](https://github.com/StackExchange/dapper-dot-net) library, which maps C# types nicely to and from C# objects without getting in the way of how you want to write your queries. Artful started off with Dapper as an inspiration and made querying your data in the built-in SQLite library much more natural and cleaner, artfully!
+In the C# world, developers have long had the excellent [Dapper](https://github.com/StackExchange/dapper-dot-net) library, which maps C# types nicely to and from C# objects without getting in the way of how you want to write your queries. QueryDroid started off with Dapper as an inspiration and made querying your data in the built-in SQLite library much more natural and cleaner!
 
 # Installation
 
-Currently, Artful is available via jitpack.io. It's pretty easy to use - in your project's root gradle file, you should have something like an `allprojects` section. Add jitpack to it:
-
-```groovy
-allprojects {
-    repositories {
-        jcenter()
-        mavenCentral()
-        maven { url 'https://jitpack.io' } // <--- new jitpack url
-    }
-}
-```
-
-Then add Artful into your Gradle file's dependencies section:
+Currently, QueryDroid is available on Maven Central.
 
 ```groovy
 dependencies {
-    implementation 'com.github.namehillsoftware:querydroid:0.3.2'
+    implementation 'com.namehillsoftware:querydroid:0.4.0'
 }
 ```
 
 
 # Usage
 
-Artful will handle serializing any objects with either public fields or with getter's and setters. For example, the class used in the above example could look like this:
+QueryDroid will handle serializing any objects with either public fields or with getter's and setters. For example, the class used in the above example could look like this:
 
 ## Fetching
 
-Artful is very fetching, and will always be when fetching you data. To fetch, pass the type you wish to fetch into the `fetch` method, as above:
+QueryDroid is very fetching, and will always be when fetching you data. To fetch, pass the type you wish to fetch into the `fetch` method, as above:
 
 ```java
 public Collection<Library> getLibraries(Context context) {
@@ -118,7 +106,7 @@ public class Library {
 }
 ```
 
-And Artful will gladly serialize this class, following some simple serialization rules. The rules are:
+And QueryDroid will gladly serialize this class, following some simple serialization rules. The rules are:
 
 1. Fields that you wish to have serialized/deserialized must be `public`, and they **must** match the name of the column you wish to deserialize
 2. Getter/Setter methods that you wish to use instead for serialization/deserialization must be `public`, and they **must** follow these rules:
@@ -156,3 +144,49 @@ public long getLibrary(Context context) {
 ```
 
 `execute()` will return a long reflecting the number of affected rows.
+
+There are also some helpers that make inserting and updating a breeze. For example, take this Kotlin class (it can be a Java POJO as well):
+
+```kt
+data class DataTypes(
+    var id: Int = 0,
+    var integerColumn: Int = 0,
+    var longColumn: Long = 0L,
+    var floatColumn: Float = 0f,
+    var doubleColumn: Double = 0.0,
+    var booleanColumn: Boolean = false,
+    var stringColumn: String? = null,
+)
+```
+
+Inserting a new value is as simple as making a call like this:
+
+```kt
+SqLiteAssistants.insertValue(
+  it,
+  tableName,
+  DataTypes(
+      booleanColumn = true,
+      integerColumn = 673,
+      longColumn = 76772878174L,
+      floatColumn = 222.18f,
+      doubleColumn = 733.72,
+      stringColumn = "winter"
+  )
+)
+```
+
+And updating is similar:
+
+```kt
+ val dataUpdate = insertedData.copy(
+   floatColumn = 370.03f,
+   stringColumn = null,
+   integerColumn = 275,
+   booleanColumn = false,
+)
+
+SqLiteAssistants.updateValue(it, tableName, dataUpdate)
+```
+
+See a full example in the [tests](./querydroid/src/test/java/GivenAnObject/WhenInsertingAndUpdatingAValue.kt).

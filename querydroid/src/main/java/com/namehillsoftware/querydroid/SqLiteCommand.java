@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteCommand {
 	private final SQLiteDatabase database;
@@ -197,16 +198,16 @@ public class SqLiteCommand {
 		for (int i = 0; i < cursor.getColumnCount(); i++) {
 			String colName = cursor.getColumnName(i).toLowerCase(Locale.ROOT);
 
-			if (reflections.setterMap.containsKey(colName)) {
-				reflections.setterMap.get(colName).set(newObject, cursor.getString(i));
+			if (reflections.setterMap.getObject().containsKey(colName)) {
+				reflections.setterMap.getObject().get(colName).set(newObject, cursor.getString(i));
 				continue;
 			}
 
 			if (!colName.startsWith("is")) continue;
 
 			colName = colName.substring(2);
-			if (reflections.setterMap.containsKey(colName))
-				reflections.setterMap.get(colName).set(newObject, cursor.getString(i));
+			if (reflections.setterMap.getObject().containsKey(colName))
+				reflections.setterMap.getObject().get(colName).set(newObject, cursor.getString(i));
 		}
 
 		return newObject;
@@ -285,9 +286,9 @@ public class SqLiteCommand {
 	}
 
 	private static class ClassCache {
-		private static final Map<Class<?>, ClassReflections> classCache = new HashMap<>();
+		private static final Map<Class<?>, ClassReflections> classCache = new ConcurrentHashMap<>();
 
-		static synchronized <T extends Class<?>> ClassReflections getReflections(T cls) {
+		static <T extends Class<?>> ClassReflections getReflections(T cls) {
 			if (!classCache.containsKey(cls))
 				classCache.put(cls, new ClassReflections(cls));
 
@@ -300,19 +301,28 @@ public class SqLiteCommand {
 	}
 
 	private static class ClassReflections {
-		final Map<String, ISetter> setterMap = new HashMap<>();
+		final AbstractSynchronousLazy<Map<String, ISetter>> setterMap;
 
 		<T extends Class<?>> ClassReflections(T cls) {
 
-			for (final Field f : cls.getFields()) {
-				setterMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldSetter(f));
-			}
+			setterMap = new AbstractSynchronousLazy<>() {
+				@Override
+				protected Map<String, ISetter> create() {
+					final HashMap<String, ISetter> newMap = new HashMap<>();
 
-			// prepare methods. Methods will override fields, if both exists.
-			for (Method m : cls.getMethods()) {
-				if (m.getParameterTypes().length == 1 && m.getName().startsWith("set"))
-					setterMap.put(m.getName().substring(3).toLowerCase(Locale.ROOT), new MethodSetter(m));
-			}
+					for (final Field f : cls.getFields()) {
+						newMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldSetter(f));
+					}
+
+					// prepare methods. Methods will override fields, if both exists.
+					for (Method m : cls.getMethods()) {
+						if (m.getParameterTypes().length == 1 && m.getName().startsWith("set"))
+							newMap.put(m.getName().substring(3).toLowerCase(Locale.ROOT), new MethodSetter(m));
+					}
+
+					return newMap;
+				}
+			};
 		}
 	}
 
