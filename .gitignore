@@ -9,7 +9,7 @@
 .externalNativeBuild
 /*.apk
 /bin
-/library/build
+/querydroid/build
 /.idea/
 .env
 _artifacts
