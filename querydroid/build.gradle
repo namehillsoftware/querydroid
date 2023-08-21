@@ -73,9 +73,9 @@ dependencies {
     def junit5_version = '5.10.0'
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    testImplementation 'junit:junit:4.13.2'
     implementation 'com.namehillsoftware:lazy-j:0.11.0'
 
+    testImplementation 'junit:junit:4.13.2'
     testImplementation 'junit:junit:4.13.2'
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit5_version"
     testImplementation 'org.assertj:assertj-core:3.24.2'
