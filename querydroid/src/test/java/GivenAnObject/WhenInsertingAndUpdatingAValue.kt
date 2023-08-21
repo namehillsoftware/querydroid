@@ -1,6 +1,6 @@
 package GivenAnObject
 
-import DataTypes
+import KotlinDataTypes
 import DataTypesDatabaseHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,7 +21,7 @@ class WhenInsertingAndUpdatingAValue {
                 SqLiteAssistants.insertValue(
                     it,
                     tableName,
-                    DataTypes(
+                    KotlinDataTypes(
                         booleanColumn = true,
                         integerColumn = 673,
                         longColumn = 76772878174L,
@@ -36,7 +36,7 @@ class WhenInsertingAndUpdatingAValue {
                     "SELECT * FROM $tableName"
                 )
 
-                val insertedData = resultQuery.fetch(DataTypes::class.java).maxBy { d -> d.id }
+                val insertedData = resultQuery.fetch(KotlinDataTypes::class.java).maxBy { d -> d.id }
                 val dataUpdate = insertedData.copy(
                     floatColumn = 370.03f,
                     stringColumn = null,
@@ -54,10 +54,10 @@ class WhenInsertingAndUpdatingAValue {
                     "SELECT * FROM $tableName WHERE id = @id"
                 ).addParameter("id", dataId)
 
-                val dataTypesResult = resultQuery.fetchFirst(DataTypes::class.java)
+                val dataTypesResult = resultQuery.fetchFirst(KotlinDataTypes::class.java)
 
                 Assertions.assertThat(dataTypesResult).isEqualTo(
-                    DataTypes(
+                    KotlinDataTypes(
                         id = dataId,
                         booleanColumn = false,
                         integerColumn = 275,

@@ -148,7 +148,7 @@ public long getLibrary(Context context) {
 There are also some helpers that make inserting and updating a breeze. For example, take this Kotlin class (it can be a Java POJO as well):
 
 ```kt
-data class DataTypes(
+data class JavaDataTypes(
     var id: Int = 0,
     var integerColumn: Int = 0,
     var longColumn: Long = 0L,
@@ -165,7 +165,7 @@ Inserting a new value is as simple as making a call like this:
 SqLiteAssistants.insertValue(
   it,
   tableName,
-  DataTypes(
+  JavaDataTypes(
       booleanColumn = true,
       integerColumn = 673,
       longColumn = 76772878174L,
