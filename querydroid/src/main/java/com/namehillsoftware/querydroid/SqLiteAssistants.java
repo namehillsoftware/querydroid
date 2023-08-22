@@ -7,6 +7,7 @@ import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -33,14 +34,18 @@ public class SqLiteAssistants {
         <T extends Class<?>> ClassReflections(T cls) {
             getterMap = new AbstractSynchronousLazy<>() {
                 @Override
-                protected Map<String, IGetter> create() throws Throwable {
+                protected Map<String, IGetter> create() {
                     final HashMap<String, IGetter> newMap = new HashMap<>();
-                    for (final Field f : cls.getFields()) {
-                        newMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldGetter(f));
+                    for (final Field f : cls.getDeclaredFields()) {
+                        if (!Modifier.isStatic(f.getModifiers()) && Modifier.isPublic(f.getModifiers()))
+                            newMap.put(f.getName().toLowerCase(Locale.ROOT), new FieldGetter(f));
                     }
 
                     // prepare methods. Methods will override fields, if both exists.
-                    for (final Method method : cls.getMethods()) {
+                    for (final Method method : cls.getDeclaredMethods()) {
+                        final int modifiers = method.getModifiers();
+                        if (Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers)) continue;
+
                         final String name = method.getName();
                         if (name.equals("getClass")) continue;
 

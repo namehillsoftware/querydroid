@@ -1,7 +1,8 @@
 package GivenAnObject
 
-import DataTypes
+import KotlinDataTypes
 import DataTypesDatabaseHelper
+import JavaDataTypes
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.namehillsoftware.querydroid.SqLiteAssistants
@@ -21,14 +22,14 @@ class WhenInsertingAValue {
                 SqLiteAssistants.insertValue(
                     it,
                     tableName,
-                    DataTypes(
-                        booleanColumn = true,
-                        integerColumn = 841,
-                        longColumn = 76772878174L,
-                        floatColumn = 222.18f,
-                        doubleColumn = 745.00,
+                    JavaDataTypes().apply {
+                        booleanColumn = true
+                        integerColumn = 841
+                        longColumn = 76772878174L
+                        floatColumn = 222.18f
+                        doubleColumn = 745.00
                         stringColumn = "arrest"
-                    )
+                    }
                 )
             }
 
@@ -38,9 +39,9 @@ class WhenInsertingAValue {
                     "SELECT * FROM $tableName"
                 )
 
-                val dataTypesResult = resultQuery.fetchFirst(DataTypes::class.java)
+                val dataTypesResult = resultQuery.fetchFirst(KotlinDataTypes::class.java)
                 Assertions.assertThat(dataTypesResult).isEqualTo(
-                    DataTypes(
+                    KotlinDataTypes(
                         id = 1,
                         booleanColumn = true,
                         integerColumn = 841,
