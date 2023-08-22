@@ -1,6 +1,6 @@
 # QueryDroid
 
-A library skilled that helps with serializing SQLite queries to and from Java objects:
+A simple library that helps with serializing Android SQLite queries to and from Java objects:
 
 ```java
 public Collection<Library> getLibraries(Context context) {
