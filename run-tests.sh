@@ -3,7 +3,7 @@
 rm -rf _artifacts
 
 docker compose build \
-  && docker compose run --rm -v "$(pwd)":/src -w /src -u "$(id -u)":"$(id -g)" \
+  && docker compose run --rm -v "$(pwd)":/src -w /src \
   gradle test
 
 EXIT_CODE=${PIPESTATUS[0]}
