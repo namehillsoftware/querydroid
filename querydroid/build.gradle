@@ -1,28 +1,36 @@
 plugins {
     id 'org.jetbrains.kotlin.android'
-    id 'com.palantir.git-version' version '3.0.0'
     id 'maven-publish'
 }
 
 apply plugin: 'com.android.library'
 apply plugin: 'signing'
 
-def versionDetails = versionDetails()
-version = versionDetails.lastTag
-// .dockerignore and .gitignore may differ, which can lead to a clean branch looking dirty,
-// so use this custom algorithm for version snapshot/not-snapshot detection
 def isRelease = true
-if (versionDetails.commitDistance > 0 || versionDetails.branchName != 'main') {
-    version += "+"
 
-    def branchName = versionDetails.branchName
-    if (branchName != null) {
-        version += branchName.replace("/", "~")
+def version = {
+    try {
+        def gitDescribe = providers.exec {
+            it.ignoreExitValue = true
+            commandLine("git", "describe")
+        }.standardOutput.asText.get().trim()
+
+        def latestTag = providers.exec {
+            it.ignoreExitValue = true
+            commandLine("git", "describe", "--abbrev=0")
+        }.standardOutput.asText.get().trim()
+
+        if (gitDescribe != latestTag) {
+            isRelease = false
+            return latestTag + "-SNAPSHOT"
+        }
+
+        isRelease = true
+        return gitDescribe
+    } catch (ignored) {
+        return "0.0.1"
     }
-
-    version += "-$versionDetails.commitDistance-SNAPSHOT"
-    isRelease = false
-}
+}()
 
 android {
     namespace = "com.namehillsoftware.querydroid"
