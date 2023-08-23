@@ -4,7 +4,7 @@ rm -rf _artifacts
 
 docker compose build \
   && docker compose run --rm -v "$(pwd)":/src -w /src \
-  gradle test
+  gradle test --stacktrace
 
 EXIT_CODE=${PIPESTATUS[0]}
 

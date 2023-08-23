@@ -110,15 +110,14 @@ public class SqLiteAssistants {
     private static final ConcurrentHashMap<Class<?>, String> cachedInsertStatements = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Class<?>, String> cachedUpdateStatements = new ConcurrentHashMap<>();
 
-    public static <T> long insertValue(SQLiteDatabase database, String table, T value) throws InvocationTargetException, IllegalAccessException {
-        final InsertBuilder insertBuilder = InsertBuilder.fromTable(table);
-
+    public static <T> long insertValue(SQLiteDatabase database, String table, T value) {
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
+        final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         String insertCommand = cachedInsertStatements.get(cls);
-        Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         if (insertCommand == null) {
+            final InsertBuilder insertBuilder = InsertBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
                 if (!Objects.equals(getterKey, "id"))
                     insertBuilder.addColumn(getterKey);
@@ -136,15 +135,14 @@ public class SqLiteAssistants {
         return command.execute();
     }
 
-    public static  <T> long updateValue(SQLiteDatabase database, String table, T value) throws InvocationTargetException, IllegalAccessException {
-        final UpdateBuilder updateBuilder = UpdateBuilder.fromTable(table);
-
+    public static  <T> long updateValue(SQLiteDatabase database, String table, T value) {
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
+        final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         String updateCommand = cachedUpdateStatements.get(cls);
-        Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
         if (updateCommand == null) {
+            final UpdateBuilder updateBuilder = UpdateBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
                 if (!Objects.equals(getterKey, "id"))
                     updateBuilder.addSetter(getterKey);
