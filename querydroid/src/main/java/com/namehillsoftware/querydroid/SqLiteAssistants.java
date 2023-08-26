@@ -50,7 +50,7 @@ public class SqLiteAssistants {
                         if (name.equals("getClass")) continue;
 
                         if (name.startsWith("get")) {
-                            newMap.put(name.replaceFirst("get", "").toLowerCase(Locale.ROOT), new MethodGetter(method));
+                            newMap.put(name.substring(3).toLowerCase(Locale.ROOT), new MethodGetter(method));
                             continue;
                         }
 
@@ -107,15 +107,17 @@ public class SqLiteAssistants {
         Object get(Object target);
     }
 
-    private static final ConcurrentHashMap<Class<?>, String> cachedInsertStatements = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Class<?>, String> cachedUpdateStatements = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, String> cachedInsertStatements = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, String> cachedUpdateStatements = new ConcurrentHashMap<>();
 
     public static <T> long insertValue(SQLiteDatabase database, String table, T value) {
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
         final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
-        String insertCommand = cachedInsertStatements.get(cls);
+
+        table = table.toLowerCase(Locale.ROOT);
+        String insertCommand = cachedInsertStatements.get(table);
         if (insertCommand == null) {
             final InsertBuilder insertBuilder = InsertBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
@@ -124,7 +126,7 @@ public class SqLiteAssistants {
             }
 
             insertCommand = insertBuilder.buildQuery();
-            cachedInsertStatements.put(cls, insertCommand);
+            cachedInsertStatements.put(table, insertCommand);
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, insertCommand);
@@ -140,7 +142,9 @@ public class SqLiteAssistants {
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 
         final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
-        String updateCommand = cachedUpdateStatements.get(cls);
+
+        table = table.toLowerCase(Locale.ROOT);
+        String updateCommand = cachedUpdateStatements.get(table);
         if (updateCommand == null) {
             final UpdateBuilder updateBuilder = UpdateBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
@@ -151,7 +155,7 @@ public class SqLiteAssistants {
             updateBuilder.setFilter("where id = @id");
 
             updateCommand = updateBuilder.buildQuery();
-            cachedUpdateStatements.put(cls, updateCommand);
+            cachedUpdateStatements.put(table, updateCommand);
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, updateCommand);

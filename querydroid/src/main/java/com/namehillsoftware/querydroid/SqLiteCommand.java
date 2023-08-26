@@ -4,6 +4,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+import android.util.Pair;
 
 import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
 
@@ -11,7 +12,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,12 +150,12 @@ public class SqLiteCommand {
 	}
 
 	public long execute() throws SQLException {
-		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
+		final Pair<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
 
-		final String sqlQuery = compatibleSqlQuery.getKey();
+		final String sqlQuery = compatibleSqlQuery.first;
 
 		try (SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery)) {
-			final String[] args = compatibleSqlQuery.getValue();
+			final String[] args = compatibleSqlQuery.second;
 			for (int i = 0; i < args.length; i++) {
 				final String arg = args[i];
 				if (arg != null)
@@ -178,9 +178,9 @@ public class SqLiteCommand {
 	}
 
 	private Cursor getCursorForQuery() {
-		final Map.Entry<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
+		final Pair<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
 
-		return database.rawQuery(compatibleSqlQuery.getKey(), compatibleSqlQuery.getValue());
+		return database.rawQuery(compatibleSqlQuery.first, compatibleSqlQuery.second);
 	}
 
 	private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
@@ -223,9 +223,9 @@ public class SqLiteCommand {
 	}
 
 	private static class QueryCache {
-		private static final Map<String, Map.Entry<String, String[]>> queryCache = new HashMap<>();
+		private static final Map<String, Pair<String, String[]>> queryCache = new HashMap<>();
 
-		static synchronized Map.Entry<String, String[]> getSqlQuery(String sqlQuery, Map<String, String> parameters) {
+		static synchronized Pair<String, String[]> getSqlQuery(String sqlQuery, Map<String, String> parameters) {
 			sqlQuery = sqlQuery.trim();
 			if (queryCache.containsKey(sqlQuery))
 				return getOrderedSqlParameters(queryCache.get(sqlQuery), parameters);
@@ -263,15 +263,15 @@ public class SqLiteCommand {
 				sqlQueryBuilder.replace(paramIndex - paramStringBuilder.length() - 1, paramIndex, "?");
 			}
 
-			final Map.Entry<String, String[]> entry = new AbstractMap.SimpleImmutableEntry<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[sqlParameters.size()]));
+			final Pair<String, String[]> entry = new Pair<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[sqlParameters.size()]));
 
 			queryCache.put(sqlQuery, entry);
 
 			return getOrderedSqlParameters(entry, parameters);
 		}
 
-		private static Map.Entry<String, String[]> getOrderedSqlParameters(Map.Entry<String, String[]> cachedQuery, Map<String, String> parameters) {
-			final String[] parameterHolders = cachedQuery.getValue();
+		private static Pair<String, String[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters) {
+			final String[] parameterHolders = cachedQuery.second;
 			final String[] newParameters = new String[parameterHolders.length];
 			for (int i = 0; i < parameterHolders.length; i++) {
 				final String parameterName = parameterHolders[i];
@@ -281,7 +281,7 @@ public class SqLiteCommand {
 				newParameters[i] = parameterValue;
 			}
 
-			return new AbstractMap.SimpleImmutableEntry<>(cachedQuery.getKey(), newParameters);
+			return new Pair<>(cachedQuery.first, newParameters);
 		}
 	}
 
@@ -315,7 +315,7 @@ public class SqLiteCommand {
 					}
 
 					// prepare methods. Methods will override fields, if both exists.
-					for (Method m : cls.getMethods()) {
+					for (final Method m : cls.getMethods()) {
 						if (m.getParameterTypes().length == 1 && m.getName().startsWith("set"))
 							newMap.put(m.getName().substring(3).toLowerCase(Locale.ROOT), new MethodSetter(m));
 					}
