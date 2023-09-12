@@ -1,13 +1,13 @@
 package GivenAnObject
 
-import KotlinDataTypes
 import DataTypesDatabaseHelper
 import JavaDataTypes
+import KotlinDataTypes
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.namehillsoftware.querydroid.SqLiteAssistants
 import com.namehillsoftware.querydroid.SqLiteCommand
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import tableName
@@ -29,6 +29,11 @@ class WhenInsertingAValue {
                         floatColumn = 222.18f
                         doubleColumn = 745.00
                         stringColumn = "arrest"
+                        byteArrayColumn = byteArrayOf(
+                            (180 % 128).toByte(),
+                            (368 % 128).toByte(),
+                            (181 % 128).toByte(),
+                        )
                     }
                 )
             }
@@ -40,7 +45,7 @@ class WhenInsertingAValue {
                 )
 
                 val dataTypesResult = resultQuery.fetchFirst(KotlinDataTypes::class.java)
-                Assertions.assertThat(dataTypesResult).isEqualTo(
+                assertThat(dataTypesResult).isEqualTo(
                     KotlinDataTypes(
                         id = 1,
                         booleanColumn = true,
@@ -48,7 +53,12 @@ class WhenInsertingAValue {
                         longColumn = 76772878174L,
                         floatColumn = 222.18f,
                         doubleColumn = 745.00,
-                        stringColumn = "arrest"
+                        stringColumn = "arrest",
+                        byteArrayColumn = byteArrayOf(
+                            (180 % 128).toByte(),
+                            (368 % 128).toByte(),
+                            (181 % 128).toByte(),
+                        )
                     )
                 )
             }
