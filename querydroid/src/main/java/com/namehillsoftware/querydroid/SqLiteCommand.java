@@ -170,18 +170,24 @@ public class SqLiteCommand {
 			final Object[] args = compatibleSqlQuery.second;
 			for (int i = 0; i < args.length; i++) {
 				final Object arg = args[i];
+				final int bindingIndex = i + 1;
 				if (arg == null) {
-					sqLiteStatement.bindNull(i + 1);
+					sqLiteStatement.bindNull(bindingIndex);
+					continue;
+				}
+
+				if (arg instanceof String) {
+					sqLiteStatement.bindString(bindingIndex, (String)arg);
 					continue;
 				}
 
 				if (arg instanceof byte[]) {
 					final byte[] byteArray = (byte[]) arg;
-					sqLiteStatement.bindBlob(i + 1, byteArray);
+					sqLiteStatement.bindBlob(bindingIndex, byteArray);
 					continue;
 				}
 
-				sqLiteStatement.bindString(i + 1, arg.toString());
+				sqLiteStatement.bindString(bindingIndex, arg.toString());
 			}
 
 			return executeSpecial(sqLiteStatement, sqlQuery);
@@ -203,7 +209,9 @@ public class SqLiteCommand {
 		final Object[] objectSelectionArgs = compatibleSqlQuery.second;
 		final String[] stringSelectionArgs = new String[objectSelectionArgs.length];
 		for (int i = 0; i < objectSelectionArgs.length; i++) {
-			stringSelectionArgs[i] = objectSelectionArgs[i].toString();
+			final Object objectSelectionArg = objectSelectionArgs[i];
+			if (objectSelectionArg instanceof String)
+				stringSelectionArgs[i] = (String)objectSelectionArg;
 		}
 
 		return database.rawQuery(compatibleSqlQuery.first, stringSelectionArgs);
