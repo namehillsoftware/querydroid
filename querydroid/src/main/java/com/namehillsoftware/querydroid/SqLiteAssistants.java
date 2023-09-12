@@ -137,7 +137,7 @@ public class SqLiteAssistants {
         return command.execute();
     }
 
-    public static  <T> long updateValue(SQLiteDatabase database, String table, T value) {
+    public static <T> long updateValue(SQLiteDatabase database, String table, T value) {
         final Class<?> cls = value.getClass();
         final ClassReflections classReflections = ClassCache.getReflections(cls);
 

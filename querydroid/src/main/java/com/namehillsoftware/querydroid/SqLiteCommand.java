@@ -24,6 +24,8 @@ public class SqLiteCommand {
 	private final String command;
 	private final HashMap<String, String> parameters = new HashMap<>();
 
+	private final HashMap<String, byte[]> blobParameters = new HashMap<>();
+
 	public SqLiteCommand(SQLiteDatabase database, String command) {
 		this.database = database;
 		this.command = command;
@@ -68,6 +70,11 @@ public class SqLiteCommand {
 			: addParameter(parameter, value.booleanValue());
 	}
 
+	public SqLiteCommand addParameter(String parameter, byte[] value) {
+		blobParameters.put(parameter, value);
+		return this;
+	}
+
 	public SqLiteCommand addParameter(String parameter, Object value) {
 		if (addNullable(parameter, value)) {
 			return this;
@@ -107,6 +114,11 @@ public class SqLiteCommand {
 
 		if (Double.TYPE.equals(valueClass)) {
 			addParameter(parameter, (double)value);
+			return this;
+		}
+
+		if (valueClass.isArray() && Byte.TYPE.equals(valueClass.getComponentType())) {
+			addParameter(parameter, (byte[]) value);
 			return this;
 		}
 
@@ -150,18 +162,26 @@ public class SqLiteCommand {
 	}
 
 	public long execute() throws SQLException {
-		final Pair<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
+		final Pair<String, Object[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters, blobParameters);
 
 		final String sqlQuery = compatibleSqlQuery.first;
 
 		try (SQLiteStatement sqLiteStatement = database.compileStatement(sqlQuery)) {
-			final String[] args = compatibleSqlQuery.second;
+			final Object[] args = compatibleSqlQuery.second;
 			for (int i = 0; i < args.length; i++) {
-				final String arg = args[i];
-				if (arg != null)
-					sqLiteStatement.bindString(i + 1, arg);
-				else
+				final Object arg = args[i];
+				if (arg == null) {
 					sqLiteStatement.bindNull(i + 1);
+					continue;
+				}
+
+				if (arg instanceof byte[]) {
+					final byte[] byteArray = (byte[]) arg;
+					sqLiteStatement.bindBlob(i + 1, byteArray);
+					continue;
+				}
+
+				sqLiteStatement.bindString(i + 1, arg.toString());
 			}
 
 			return executeSpecial(sqLiteStatement, sqlQuery);
@@ -178,9 +198,15 @@ public class SqLiteCommand {
 	}
 
 	private Cursor getCursorForQuery() {
-		final Pair<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
+		final Pair<String, Object[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters, blobParameters);
 
-		return database.rawQuery(compatibleSqlQuery.first, compatibleSqlQuery.second);
+		final Object[] objectSelectionArgs = compatibleSqlQuery.second;
+		final String[] stringSelectionArgs = new String[objectSelectionArgs.length];
+		for (int i = 0; i < objectSelectionArgs.length; i++) {
+			stringSelectionArgs[i] = objectSelectionArgs[i].toString();
+		}
+
+		return database.rawQuery(compatibleSqlQuery.first, stringSelectionArgs);
 	}
 
 	private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
@@ -198,16 +224,28 @@ public class SqLiteCommand {
 		for (int i = 0; i < cursor.getColumnCount(); i++) {
 			String colName = cursor.getColumnName(i).toLowerCase(Locale.ROOT);
 
-			if (reflections.setterMap.getObject().containsKey(colName)) {
-				reflections.setterMap.getObject().get(colName).set(newObject, cursor.getString(i));
+			final Map<String, ISetter> setterMap = reflections.setterMap.getObject();
+			if (setterMap.containsKey(colName)) {
+				final ISetter setter = setterMap.get(colName);
+				final int columnType = cursor.getType(i);
+				if (columnType != Cursor.FIELD_TYPE_BLOB)
+					setter.set(newObject, cursor.getString(i));
+				else
+					setter.set(newObject, cursor.getBlob(i));
 				continue;
 			}
 
 			if (!colName.startsWith("is")) continue;
 
 			colName = colName.substring(2);
-			if (reflections.setterMap.getObject().containsKey(colName))
-				reflections.setterMap.getObject().get(colName).set(newObject, cursor.getString(i));
+			if (setterMap.containsKey(colName)) {
+				final ISetter setter = setterMap.get(colName);
+				final int columnType = cursor.getType(i);
+				if (columnType != Cursor.FIELD_TYPE_BLOB)
+					setter.set(newObject, cursor.getString(i));
+				else
+					setter.set(newObject, cursor.getBlob(i));
+			}
 		}
 
 		return newObject;
@@ -225,10 +263,10 @@ public class SqLiteCommand {
 	private static class QueryCache {
 		private static final Map<String, Pair<String, String[]>> queryCache = new HashMap<>();
 
-		static synchronized Pair<String, String[]> getSqlQuery(String sqlQuery, Map<String, String> parameters) {
+		static synchronized Pair<String, Object[]> getSqlQuery(String sqlQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
 			sqlQuery = sqlQuery.trim();
 			if (queryCache.containsKey(sqlQuery))
-				return getOrderedSqlParameters(queryCache.get(sqlQuery), parameters);
+				return getOrderedSqlParameters(queryCache.get(sqlQuery), parameters, blobParameters);
 
 			final ArrayList<String> sqlParameters = new ArrayList<>();
 			final StringBuilder sqlQueryBuilder = new StringBuilder(sqlQuery);
@@ -263,22 +301,28 @@ public class SqLiteCommand {
 				sqlQueryBuilder.replace(paramIndex - paramStringBuilder.length() - 1, paramIndex, "?");
 			}
 
-			final Pair<String, String[]> entry = new Pair<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[sqlParameters.size()]));
+			final Pair<String, String[]> entry = new Pair<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[0]));
 
 			queryCache.put(sqlQuery, entry);
 
-			return getOrderedSqlParameters(entry, parameters);
+			return getOrderedSqlParameters(entry, parameters, blobParameters);
 		}
 
-		private static Pair<String, String[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters) {
+		private static Pair<String, Object[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
 			final String[] parameterHolders = cachedQuery.second;
-			final String[] newParameters = new String[parameterHolders.length];
+			final Object[] newParameters = new Object[parameterHolders.length];
 			for (int i = 0; i < parameterHolders.length; i++) {
 				final String parameterName = parameterHolders[i];
-				if (!parameters.containsKey(parameterName)) continue;
+				if (parameters.containsKey(parameterName)) {
+					final String parameterValue = parameters.get(parameterName);
+					newParameters[i] = parameterValue;
+					continue;
+				}
 
-				final String parameterValue = parameters.get(parameterName);
-				newParameters[i] = parameterValue;
+				if (blobParameters.containsKey(parameterName)) {
+					final byte[] blobValue = blobParameters.get(parameterName);
+					newParameters[i] = blobValue;
+				}
 			}
 
 			return new Pair<>(cachedQuery.first, newParameters);
@@ -298,6 +342,8 @@ public class SqLiteCommand {
 
 	private interface ISetter {
 		void set(Object object, String value);
+
+		void set(Object object, byte[] value);
 	}
 
 	private static class ClassReflections {
@@ -337,16 +383,29 @@ public class SqLiteCommand {
 
 		public void set(Object object, String value) {
 			Class<?> currentType = type;
+
 			while (currentType != Object.class) {
-				if (setters.getObject().containsKey(currentType)) {
-					setters.getObject().get(type).getObject().setFromString(field, object, value);
+				final HashMap<Type, AbstractSynchronousLazy<SetFields>> setters = FieldSetter.setters.getObject();
+				if (setters.containsKey(currentType)) {
+					setters.get(currentType).getObject().setFromString(field, object, value);
 					break;
 				}
 				currentType = type.getSuperclass();
 			}
 		}
 
-		private static final AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>> setters = new AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>>() {
+		@Override
+		public void set(Object object, byte[] value) {
+			if (type == byte[].class) {
+				try {
+					field.set(object, value);
+				} catch (IllegalAccessException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+
+		private static final AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>> setters = new AbstractSynchronousLazy<>() {
 			@Override
 			protected HashMap<Type, AbstractSynchronousLazy<SetFields>> create() {
 				final HashMap<Type, AbstractSynchronousLazy<SetFields>> newHashMap = new HashMap<>();
@@ -365,7 +424,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -378,7 +437,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -392,7 +451,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Short.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Short.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -405,7 +464,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -419,7 +478,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Integer.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Integer.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -432,7 +491,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -446,7 +505,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Long.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Long.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -459,7 +518,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -473,7 +532,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Float.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Float.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -486,7 +545,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -500,7 +559,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Double.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Double.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -513,7 +572,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(String.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(String.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -526,7 +585,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Enum.class, new AbstractSynchronousLazy<SetFields>() {
+				newHashMap.put(Enum.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetFields create() {
 						return (field, target, value) -> {
@@ -569,12 +628,25 @@ public class SqLiteCommand {
 			}
 		}
 
-		private static final AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>> setters = new AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>>() {
+		@Override
+		public void set(Object object, byte[] value) {
+			if (type == byte[].class) {
+				try {
+					method.invoke(object, (Object) value);
+				} catch (IllegalAccessException e) {
+					throw new RuntimeException(e);
+				} catch (InvocationTargetException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+
+		private static final AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>> setters = new AbstractSynchronousLazy<>() {
 			@Override
 			protected HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>> create() {
 				final HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>> newHashMap = new HashMap<>();
 
-				newHashMap.put(Boolean.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Boolean.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -590,7 +662,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Boolean.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -605,7 +677,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Short.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -621,7 +693,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Short.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Short.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -636,7 +708,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Integer.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -652,7 +724,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Integer.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Integer.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -667,7 +739,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Long.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -683,7 +755,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Long.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Long.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -698,7 +770,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Float.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -714,7 +786,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Float.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Float.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -729,7 +801,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Double.TYPE, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -745,7 +817,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Double.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Double.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -760,7 +832,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(String.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(String.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {
@@ -775,7 +847,7 @@ public class SqLiteCommand {
 					}
 				});
 
-				newHashMap.put(Enum.class, new AbstractSynchronousLazy<SetMethods>() {
+				newHashMap.put(Enum.class, new AbstractSynchronousLazy<>() {
 					@Override
 					protected SetMethods create() {
 						return (method, target, value) -> {

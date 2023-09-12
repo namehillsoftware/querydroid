@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Objects;
 
 public class JavaDataTypes {
@@ -10,6 +11,7 @@ public class JavaDataTypes {
     private double doubleColumn = 0.0;
     private boolean booleanColumn = false;
     private String stringColumn = null;
+    private byte[] byteArray;
 
     public int getId() {
         return id;
@@ -67,6 +69,14 @@ public class JavaDataTypes {
         this.stringColumn = stringColumn;
     }
 
+    public byte[] getByteArrayColumn() {
+        return byteArray;
+    }
+
+    public void setByteArrayColumn(byte[] byteArray) {
+        this.byteArray = byteArray;
+    }
+
     private int get$SecretData() {
         return -1;
     }
@@ -76,11 +86,11 @@ public class JavaDataTypes {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         JavaDataTypes javaDataTypes = (JavaDataTypes) o;
-        return id == javaDataTypes.id && integerColumn == javaDataTypes.integerColumn && longColumn == javaDataTypes.longColumn && Float.compare(javaDataTypes.floatColumn, floatColumn) == 0 && Double.compare(javaDataTypes.doubleColumn, doubleColumn) == 0 && booleanColumn == javaDataTypes.booleanColumn && stringColumn.equals(javaDataTypes.stringColumn);
+        return id == javaDataTypes.id && integerColumn == javaDataTypes.integerColumn && longColumn == javaDataTypes.longColumn && Float.compare(javaDataTypes.floatColumn, floatColumn) == 0 && Double.compare(javaDataTypes.doubleColumn, doubleColumn) == 0 && booleanColumn == javaDataTypes.booleanColumn && stringColumn.equals(javaDataTypes.stringColumn) && Arrays.equals(byteArray, javaDataTypes.byteArray);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, integerColumn, longColumn, floatColumn, doubleColumn, booleanColumn, stringColumn);
+        return Objects.hash(id, integerColumn, longColumn, floatColumn, doubleColumn, booleanColumn, stringColumn, Arrays.hashCode(byteArray));
     }
 }
