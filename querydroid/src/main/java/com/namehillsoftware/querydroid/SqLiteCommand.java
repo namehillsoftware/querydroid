@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteCommand {
@@ -204,17 +205,9 @@ public class SqLiteCommand {
 	}
 
 	private Cursor getCursorForQuery() {
-		final Pair<String, Object[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters, blobParameters);
+		final Pair<String, String[]> compatibleSqlQuery = QueryCache.getSqlQuery(command, parameters);
 
-		final Object[] objectSelectionArgs = compatibleSqlQuery.second;
-		final String[] stringSelectionArgs = new String[objectSelectionArgs.length];
-		for (int i = 0; i < objectSelectionArgs.length; i++) {
-			final Object objectSelectionArg = objectSelectionArgs[i];
-			if (objectSelectionArg instanceof String)
-				stringSelectionArgs[i] = (String)objectSelectionArg;
-		}
-
-		return database.rawQuery(compatibleSqlQuery.first, stringSelectionArgs);
+		return database.rawQuery(compatibleSqlQuery.first, compatibleSqlQuery.second);
 	}
 
 	private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
@@ -268,14 +261,72 @@ public class SqLiteCommand {
 		return sqLiteStatement.simpleQueryForLong();
 	}
 
-	private static class QueryCache {
-		private static final Map<String, Pair<String, String[]>> queryCache = new HashMap<>();
+	private static class QueryCache extends AbstractSynchronousLazy<Pair<String, String[]>> {
 
-		static synchronized Pair<String, Object[]> getSqlQuery(String sqlQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
+		private static final Map<String, AbstractSynchronousLazy<Pair<String, String[]>>> queryCache = new ConcurrentHashMap<>();
+
+		static Pair<String, Object[]> getSqlQuery(String sqlQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
+			return getOrderedSqlParameters(getOrAddSqlQuery(sqlQuery), parameters, blobParameters);
+		}
+
+		static Pair<String, String[]> getSqlQuery(String sqlQuery, Map<String, String> parameters) {
+			return getOrderedSqlParameters(getOrAddSqlQuery(sqlQuery), parameters);
+		}
+
+		private static Pair<String, String[]> getOrAddSqlQuery(String sqlQuery) {
 			sqlQuery = sqlQuery.trim();
 			if (queryCache.containsKey(sqlQuery))
-				return getOrderedSqlParameters(queryCache.get(sqlQuery), parameters, blobParameters);
+				return Objects.requireNonNull(queryCache.get(sqlQuery)).getObject();
 
+			queryCache.put(sqlQuery, new QueryCache(sqlQuery));
+
+			return Objects.requireNonNull(queryCache.get(sqlQuery)).getObject();
+		}
+
+		private static Pair<String, String[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters) {
+			final String[] parameterHolders = cachedQuery.second;
+			final String[] newParameters = new String[parameterHolders.length];
+			for (int i = 0; i < parameterHolders.length; i++) {
+				final String parameterName = parameterHolders[i];
+				if (parameters.containsKey(parameterName)) {
+					final String parameterValue = parameters.get(parameterName);
+					newParameters[i] = parameterValue;
+				}
+			}
+
+			return new Pair<>(cachedQuery.first, newParameters);
+		}
+
+		private static Pair<String, Object[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
+			final String[] parameterHolders = cachedQuery.second;
+			final Object[] newParameters = new Object[parameterHolders.length];
+			for (int i = 0; i < parameterHolders.length; i++) {
+				final String parameterName = parameterHolders[i];
+				if (parameters.containsKey(parameterName)) {
+					final String parameterValue = parameters.get(parameterName);
+					newParameters[i] = parameterValue;
+					continue;
+				}
+
+				if (blobParameters.containsKey(parameterName)) {
+					final byte[] blobValue = blobParameters.get(parameterName);
+					newParameters[i] = blobValue;
+				}
+			}
+
+			return new Pair<>(cachedQuery.first, newParameters);
+		}
+
+		// Cached SQL Factory
+
+		private final String sqlQuery;
+
+		private QueryCache(String sqlQuery) {
+			this.sqlQuery = sqlQuery;
+		}
+
+		@Override
+		protected Pair<String, String[]> create() {
 			final ArrayList<String> sqlParameters = new ArrayList<>();
 			final StringBuilder sqlQueryBuilder = new StringBuilder(sqlQuery);
 			int paramIndex;
@@ -309,31 +360,7 @@ public class SqLiteCommand {
 				sqlQueryBuilder.replace(paramIndex - paramStringBuilder.length() - 1, paramIndex, "?");
 			}
 
-			final Pair<String, String[]> entry = new Pair<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[0]));
-
-			queryCache.put(sqlQuery, entry);
-
-			return getOrderedSqlParameters(entry, parameters, blobParameters);
-		}
-
-		private static Pair<String, Object[]> getOrderedSqlParameters(Pair<String, String[]> cachedQuery, Map<String, String> parameters, Map<String, byte[]> blobParameters) {
-			final String[] parameterHolders = cachedQuery.second;
-			final Object[] newParameters = new Object[parameterHolders.length];
-			for (int i = 0; i < parameterHolders.length; i++) {
-				final String parameterName = parameterHolders[i];
-				if (parameters.containsKey(parameterName)) {
-					final String parameterValue = parameters.get(parameterName);
-					newParameters[i] = parameterValue;
-					continue;
-				}
-
-				if (blobParameters.containsKey(parameterName)) {
-					final byte[] blobValue = blobParameters.get(parameterName);
-					newParameters[i] = blobValue;
-				}
-			}
-
-			return new Pair<>(cachedQuery.first, newParameters);
+			return new Pair<>(sqlQueryBuilder.toString(), sqlParameters.toArray(new String[0]));
 		}
 	}
 
