@@ -1,5 +1,7 @@
 # QueryDroid
 
+![Logo](./robot-confused-outline.svg)
+
 A simple library that helps with serializing Android SQLite queries to and from Java objects:
 
 ```java
@@ -14,7 +16,7 @@ public Collection<Library> getLibraries(Context context) {
 
 What problems does it solve? 
 
-The standard Android library has for ages had numerous ways to pull back data from its built-in SQLite database. However, none of these ways either a) are easy to use, or b) give developers the power they need to develop performant applications.
+The standard Android library has for ages had numerous ways to pull back data from its built-in SQLite database. However, none of these ways either a) are easy to use, or b) give developers the power they need to develop performant, flexible applications.
 
 In the C# world, developers have long had the excellent [Dapper](https://github.com/StackExchange/dapper-dot-net) library, which maps C# types nicely to and from C# objects without getting in the way of how you want to write your queries. QueryDroid started off with Dapper as an inspiration and made querying your data in the built-in SQLite library much more natural and cleaner!
 
@@ -27,7 +29,6 @@ dependencies {
     implementation 'com.namehillsoftware:querydroid:0.4.0'
 }
 ```
-
 
 # Usage
 
