@@ -1,18 +1,14 @@
 package com.namehillsoftware.querydroid;
 
 import android.database.sqlite.SQLiteDatabase;
-
+import android.util.Pair;
 import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteAssistants {
@@ -107,8 +103,8 @@ public class SqLiteAssistants {
         Object get(Object target);
     }
 
-    private static final ConcurrentHashMap<String, String> cachedInsertStatements = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, String> cachedUpdateStatements = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Pair<Class<?>, String>, String> cachedInsertStatements = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Pair<Class<?>, String>, String> cachedUpdateStatements = new ConcurrentHashMap<>();
 
     public static <T> long insertValue(SQLiteDatabase database, String table, T value) {
         final Class<?> cls = value.getClass();
@@ -117,7 +113,8 @@ public class SqLiteAssistants {
         final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
 
         table = table.toLowerCase(Locale.ROOT);
-        String insertCommand = cachedInsertStatements.get(table);
+        Pair<Class<?>, String> insertCacheKey = new Pair<>(cls, table);
+        String insertCommand = cachedInsertStatements.get(insertCacheKey);
         if (insertCommand == null) {
             final InsertBuilder insertBuilder = InsertBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
@@ -126,7 +123,7 @@ public class SqLiteAssistants {
             }
 
             insertCommand = insertBuilder.buildQuery();
-            cachedInsertStatements.put(table, insertCommand);
+            cachedInsertStatements.put(insertCacheKey, insertCommand);
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, insertCommand);
@@ -144,7 +141,8 @@ public class SqLiteAssistants {
         final Map<String, IGetter> getterMap = classReflections.getterMap.getObject();
 
         table = table.toLowerCase(Locale.ROOT);
-        String updateCommand = cachedUpdateStatements.get(table);
+        Pair<Class<?>, String> updateCacheKey = new Pair<>(cls, table);
+        String updateCommand = cachedUpdateStatements.get(updateCacheKey);
         if (updateCommand == null) {
             final UpdateBuilder updateBuilder = UpdateBuilder.fromTable(table);
             for (String getterKey : getterMap.keySet()) {
@@ -155,7 +153,7 @@ public class SqLiteAssistants {
             updateBuilder.setFilter("where id = @id");
 
             updateCommand = updateBuilder.buildQuery();
-            cachedUpdateStatements.put(table, updateCommand);
+            cachedUpdateStatements.put(updateCacheKey, updateCommand);
         }
 
         final SqLiteCommand command = new SqLiteCommand(database, updateCommand);

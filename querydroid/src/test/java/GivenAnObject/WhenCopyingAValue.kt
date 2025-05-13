@@ -8,13 +8,22 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.namehillsoftware.querydroid.SqLiteAssistants
 import com.namehillsoftware.querydroid.SqLiteCommand
 import copyTableName
-import org.assertj.core.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import tableName
 
 @RunWith(AndroidJUnit4::class)
 class WhenCopyingAValue {
+
+    data class ReducedDataTypes(
+        var id: Int = 0,
+        var integerColumn: Int = 0,
+        var longColumn: Long = 0L,
+        var floatColumn: Float = 0f,
+        var doubleColumn: Double = 0.0,
+        var booleanColumn: Boolean = false,
+    )
 
     @Test
     fun `then the value is correct`() {
@@ -23,17 +32,17 @@ class WhenCopyingAValue {
                 SqLiteAssistants.insertValue(
                     it,
                     tableName,
-                    JavaDataTypes().apply {
-                        booleanColumn = false
-                        integerColumn = 993
-                        longColumn = 636979907L
-                        floatColumn = 77.25f
-                        doubleColumn = 551.44
-                        stringColumn = "resist"
-                    }
+                    ReducedDataTypes(
+                        booleanColumn = false,
+                        integerColumn = 993,
+                        longColumn = 636979907L,
+                        floatColumn = 77.25f,
+                        doubleColumn = 551.44,
+                    )
                 )
 
                 val dataTypesResult = SqLiteCommand(it, "SELECT * FROM $tableName").fetchFirst(JavaDataTypes::class.java)
+                dataTypesResult.stringColumn = "resist"
 
                 SqLiteAssistants.insertValue(
                     it,
