@@ -104,12 +104,12 @@ afterEvaluate {
     publishing {
         publications {
             mavenJava(MavenPublication) {
+                from(components.release)
 
                 groupId = "com.namehillsoftware"
                 artifactId = 'querydroid'
                 version = versionString
 
-                from components.release
                 artifact androidSourcesJar
 
                 pom {
