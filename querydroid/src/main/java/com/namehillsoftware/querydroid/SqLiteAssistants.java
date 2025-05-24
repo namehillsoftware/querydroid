@@ -165,15 +165,16 @@ public class SqLiteAssistants {
     }
 
     public static class InsertBuilder {
-        private final StringBuilder sqlStringBuilder;
         private final ArrayList<String> columns = new ArrayList<>();
+        private final String tableName;
+        private boolean shouldReplace = false;
 
         public static InsertBuilder fromTable(String tableName) {
             return new InsertBuilder(tableName);
         }
 
         private InsertBuilder(String tableName) {
-            sqlStringBuilder = new StringBuilder("INSERT INTO " + tableName + " (");
+            this.tableName = tableName;
         }
 
         public InsertBuilder addColumn(String column) {
@@ -182,8 +183,25 @@ public class SqLiteAssistants {
             return this;
         }
 
+        public InsertBuilder withReplacement() {
+            shouldReplace = true;
+            return this;
+        }
+
+        public InsertBuilder withoutReplacement() {
+            shouldReplace = false;
+            return this;
+        }
+
         /** @noinspection StringEquality*/
         public String buildQuery() {
+            final StringBuilder sqlStringBuilder = new StringBuilder("INSERT ");
+
+            if (shouldReplace)
+                sqlStringBuilder.append(" OR REPLACE ");
+
+            sqlStringBuilder.append(" INTO ").append(tableName).append(" (");
+
             for (String column : columns) {
                 sqlStringBuilder.append(column);
                 if (column != columns.get(columns.size() - 1))
@@ -203,7 +221,7 @@ public class SqLiteAssistants {
     }
 
     public static class UpdateBuilder {
-        private final StringBuilder sqlStringBuilder;
+        private final String tableName;
         private final ArrayList<String> setters = new ArrayList<>();
         private String filter = "";
 
@@ -212,7 +230,7 @@ public class SqLiteAssistants {
         }
 
         private UpdateBuilder(String tableName) {
-            sqlStringBuilder = new StringBuilder("UPDATE " + tableName + " SET ");
+            this.tableName = tableName;
         }
 
         public UpdateBuilder addSetter(String columnName) {
@@ -227,6 +245,8 @@ public class SqLiteAssistants {
 
         /** @noinspection StringEquality*/
         public String buildQuery() {
+            final StringBuilder sqlStringBuilder = new StringBuilder("UPDATE " + tableName + " SET ");
+
             for (String setter : setters) {
                 sqlStringBuilder.append(setter).append(" = @").append(setter);
                 if (setter != setters.get(setters.size()  - 1))

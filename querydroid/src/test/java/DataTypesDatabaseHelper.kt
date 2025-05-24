@@ -12,7 +12,7 @@ class DataTypesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, "tes
 			`IntegerColumn` INTEGER,
 			`LongColumn` BIGINT,
             `FloatColumn` REAL,
-            `DoubleColumn` DOUBLE,
+            `DoubleColumn` NUMERIC,
 			`BooleanColumn` SMALLINT ,
 			`StringColumn` VARCHAR ,
             `ByteArrayColumn` BLOB)""")

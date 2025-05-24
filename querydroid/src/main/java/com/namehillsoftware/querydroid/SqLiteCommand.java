@@ -5,19 +5,13 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.util.Pair;
-
 import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteCommand {
@@ -228,6 +222,8 @@ public class SqLiteCommand {
 			final Map<String, ISetter> setterMap = reflections.setterMap.getObject();
 			if (setterMap.containsKey(colName)) {
 				final ISetter setter = setterMap.get(colName);
+				if (setter == null) continue;
+
 				final int columnType = cursor.getType(i);
 				if (columnType != Cursor.FIELD_TYPE_BLOB)
 					setter.set(newObject, cursor.getString(i));
