@@ -12,6 +12,7 @@ public class JavaDataTypes {
     private boolean booleanColumn = false;
     private String stringColumn = null;
     private byte[] byteArray;
+    private TestEnum testEnumColumn;
 
     public int getId() {
         return id;
@@ -81,16 +82,32 @@ public class JavaDataTypes {
         return -1;
     }
 
+    public TestEnum getTestEnumColumn() {
+        return testEnumColumn;
+    }
+
+    public void setTestEnumColumn(TestEnum testEnumColumn) {
+        this.testEnumColumn = testEnumColumn;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         JavaDataTypes javaDataTypes = (JavaDataTypes) o;
-        return id == javaDataTypes.id && integerColumn == javaDataTypes.integerColumn && longColumn == javaDataTypes.longColumn && Float.compare(javaDataTypes.floatColumn, floatColumn) == 0 && Double.compare(javaDataTypes.doubleColumn, doubleColumn) == 0 && booleanColumn == javaDataTypes.booleanColumn && stringColumn.equals(javaDataTypes.stringColumn) && Arrays.equals(byteArray, javaDataTypes.byteArray);
+        return id == javaDataTypes.id
+                && integerColumn == javaDataTypes.integerColumn
+                && longColumn == javaDataTypes.longColumn
+                && Float.compare(javaDataTypes.floatColumn, floatColumn) == 0
+                && Double.compare(javaDataTypes.doubleColumn, doubleColumn) == 0
+                && booleanColumn == javaDataTypes.booleanColumn
+                && stringColumn.equals(javaDataTypes.stringColumn)
+                && testEnumColumn.equals(javaDataTypes.testEnumColumn)
+                && Arrays.equals(byteArray, javaDataTypes.byteArray);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, integerColumn, longColumn, floatColumn, doubleColumn, booleanColumn, stringColumn, Arrays.hashCode(byteArray));
+        return Objects.hash(id, integerColumn, longColumn, floatColumn, doubleColumn, booleanColumn, stringColumn, testEnumColumn, Arrays.hashCode(byteArray));
     }
 }

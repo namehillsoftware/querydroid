@@ -7,6 +7,7 @@ data class KotlinDataTypes(
     var booleanColumn: Boolean = false,
     var stringColumn: String? = null,
     var byteArrayColumn: ByteArray? = null,
+    var testEnumColumn: TestEnum? = null,
 ) {
     companion object {
 
@@ -27,6 +28,7 @@ data class KotlinDataTypes(
         if (doubleColumn != other.doubleColumn) return false
         if (booleanColumn != other.booleanColumn) return false
         if (stringColumn != other.stringColumn) return false
+        if (testEnumColumn != other.testEnumColumn) return false
         if (byteArrayColumn != null) {
             if (other.byteArrayColumn == null) return false
             if (!byteArrayColumn.contentEquals(other.byteArrayColumn)) return false
@@ -43,6 +45,7 @@ data class KotlinDataTypes(
         result = 31 * result + doubleColumn.hashCode()
         result = 31 * result + booleanColumn.hashCode()
         result = 31 * result + (stringColumn?.hashCode() ?: 0)
+        result = 31 * result + (testEnumColumn?.hashCode() ?: 0)
         result = 31 * result + (byteArrayColumn?.contentHashCode() ?: 0)
         return result
     }
