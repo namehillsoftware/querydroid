@@ -5,13 +5,19 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.util.Pair;
+
 import com.namehillsoftware.lazyj.AbstractSynchronousLazy;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SqLiteCommand {
@@ -204,7 +210,27 @@ public class SqLiteCommand {
 		return database.rawQuery(compatibleSqlQuery.first, compatibleSqlQuery.second);
 	}
 
-	private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
+	/** @noinspection unchecked*/
+    private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
+		if (cls == String.class && cursor.getColumnCount() == 1) {
+			return (T) cursor.getString(0);
+		}
+
+		if (cursor.getColumnCount() == 1) {
+			AbstractSynchronousLazy<PrimitiveParsers.ParsePrimitive<?>> parser = PrimitiveParsers.parsers.getObject().get(cls);
+			if (parser != null) {
+				return ((PrimitiveParsers.ParsePrimitive<T>)parser.getObject()).parse(cursor.getString(0));
+			}
+
+			if (cls.isEnum()) {
+				return (T)Enum.valueOf((Class<? extends Enum>) cls, cursor.getString(0));
+			}
+
+			if (cls == byte[].class && cursor.getType(0) == Cursor.FIELD_TYPE_BLOB) {
+				return (T) cursor.getBlob(0);
+			}
+		}
+
 		final ClassReflections reflections = ClassCache.getReflections(cls);
 
 		final T newObject;
@@ -663,7 +689,7 @@ public class SqLiteCommand {
 		public void set(Object object, byte[] value) {
 			if (type == byte[].class) {
 				try {
-					method.invoke(object, (Object) value);
+					method.invoke(object, value);
 				} catch (IllegalAccessException e) {
 					throw new RuntimeException(e);
 				} catch (InvocationTargetException e) {
@@ -901,6 +927,57 @@ public class SqLiteCommand {
 		private interface SetMethods {
 			void setFromString(Method method, Object target, String value);
 		}
+	}
+
+	private static class PrimitiveParsers {
+		interface ParsePrimitive<T> {
+			T parse(String value);
+		}
+
+		static final AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<ParsePrimitive<?>>>> parsers = new AbstractSynchronousLazy<>() {
+
+			@Override
+			protected HashMap<Class<?>, AbstractSynchronousLazy<ParsePrimitive<?>>> create() {
+				final HashMap<Class<?>, AbstractSynchronousLazy<ParsePrimitive<?>>> map = new HashMap<>();
+				map.put(Boolean.TYPE, new AbstractSynchronousLazy<>() {
+                    @Override
+                    protected ParsePrimitive<?> create() {
+                        return SqLiteCommand::parseSqlBoolean;
+                    }
+                });
+				map.put(Boolean.class, map.get(Boolean.TYPE));
+				map.put(Integer.TYPE, new AbstractSynchronousLazy<>() {
+					@Override
+					protected ParsePrimitive<?> create() {
+						return Integer::parseInt;
+					}
+				});
+				map.put(Integer.class, map.get(Integer.TYPE));
+				map.put(Long.TYPE, new AbstractSynchronousLazy<>() {
+                    @Override
+                    protected ParsePrimitive<?> create() {
+                        return Long::parseLong;
+                    }
+                });
+				map.put(Long.class, map.get(Long.TYPE));
+				map.put(Float.TYPE, new AbstractSynchronousLazy<>() {
+                    @Override
+                    protected ParsePrimitive<?> create() {
+                        return Float::parseFloat;
+                    }
+                });
+				map.put(Float.class, map.get(Float.TYPE));
+				map.put(Double.TYPE, new AbstractSynchronousLazy<>() {
+                    @Override
+                    protected ParsePrimitive<?> create() {
+                        return Double::parseDouble;
+                    }
+                });
+				map.put(Double.class, map.get(Double.TYPE));
+				return map;
+			}
+		};
+
 	}
 
 	private static boolean parseSqlBoolean(String booleanValue) {
