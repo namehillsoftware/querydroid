@@ -35,11 +35,11 @@ def versionString = {
 android {
     namespace = "com.namehillsoftware.querydroid"
 
-    compileSdkVersion 33
+    compileSdkVersion 36
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 33
+        targetSdkVersion 36
         versionName = versionString
     }
 
@@ -81,7 +81,7 @@ dependencies {
     implementation 'com.namehillsoftware:lazy-j:0.11.0'
 
     testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.assertj:assertj-core:3.27.6'
     testImplementation 'org.robolectric:robolectric:4.10.3'
     testImplementation 'androidx.test.ext:junit-ktx:1.1.5'
     testImplementation 'androidx.test:core:1.5.0'
