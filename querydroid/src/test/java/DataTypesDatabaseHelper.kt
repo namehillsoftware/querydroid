@@ -15,7 +15,8 @@ class DataTypesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, "tes
             `DoubleColumn` NUMERIC,
 			`BooleanColumn` SMALLINT ,
 			`StringColumn` VARCHAR ,
-            `ByteArrayColumn` BLOB)""")
+            `ByteArrayColumn` BLOB,
+            `TestEnumColumn` VARCHAR)""")
 
         sqLiteDatabase?.execSQL("""CREATE TABLE IF NOT EXISTS `$copyTableName` (
 			`id` INTEGER PRIMARY KEY AUTOINCREMENT ,
@@ -25,7 +26,8 @@ class DataTypesDatabaseHelper(context: Context) : SQLiteOpenHelper(context, "tes
             `DoubleColumn` DOUBLE,
 			`BooleanColumn` SMALLINT ,
 			`StringColumn` VARCHAR ,
-            `ByteArrayColumn` BLOB)""")
+            `ByteArrayColumn` BLOB,
+            `TestEnumColumn` VARCHAR)""")
     }
 
     override fun onUpgrade(p0: SQLiteDatabase?, p1: Int, p2: Int) {
