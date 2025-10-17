@@ -18,7 +18,7 @@ ENV ANDROID_SDK_HOME=${ANDROID_HOME}
 ENV PATH ${ANDROID_HOME}/cmdline-tools/cmdline-tools/bin:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools:${PATH}
 
 # set default build arguments
-ARG SDK_VERSION=commandlinetools-linux-10406996_latest.zip
+ARG SDK_VERSION=commandlinetools-linux-12700392_latest.zip
 
 RUN curl -sSL https://dl.google.com/android/repository/${SDK_VERSION} -o /tmp/sdk.zip \
     && mkdir ${ANDROID_HOME} \
@@ -32,12 +32,15 @@ ARG ANDROID_TOOLS_VERSION=36.0.0
 
 # Full reference at https://dl.google.com/android/repository/repository2-1.xml
 # download and unpack android
-RUN yes | sdkmanager "platform-tools" \
+COPY querydroid/src/test/resources/robolectric.properties ./
+
+RUN . ./robolectric.properties && (yes | sdkmanager "platform-tools" \
 #        "emulator" \ # keeping just in case it is needed
         "platforms;android-${ANDROID_BUILD_VERSION}" \
         "build-tools;${ANDROID_TOOLS_VERSION}" \
+        "build-tools;${sdk}.0.0" \
 #        "add-ons;addon-google_apis-google-23" \ # keeping in case addons are needed
-        "extras;android;m2repository"
+        "extras;android;m2repository")
 
 WORKDIR /src
 
