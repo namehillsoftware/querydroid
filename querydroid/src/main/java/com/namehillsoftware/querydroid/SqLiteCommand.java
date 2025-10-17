@@ -210,7 +210,7 @@ public class SqLiteCommand {
 		return database.rawQuery(compatibleSqlQuery.first, compatibleSqlQuery.second);
 	}
 
-	/** @noinspection unchecked*/
+	@SuppressWarnings({"unchecked", "rawtypes"})
     private static <T> T mapDataFromCursorToClass(Cursor cursor, Class<T> cls) {
 		if (cls == String.class && cursor.getColumnCount() == 1) {
 			return (T) cursor.getString(0);
@@ -236,13 +236,11 @@ public class SqLiteCommand {
 		final T newObject;
 		try {
 			newObject = cls.newInstance();
-		} catch (InstantiationException e) {
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
+		} catch (InstantiationException | IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
 
-		for (int i = 0; i < cursor.getColumnCount(); i++) {
+        for (int i = 0; i < cursor.getColumnCount(); i++) {
 			String colName = cursor.getColumnName(i).toLowerCase(Locale.ROOT);
 
 			final Map<String, ISetter> setterMap = reflections.setterMap.getObject();
@@ -261,8 +259,8 @@ public class SqLiteCommand {
 			if (!colName.startsWith("is")) continue;
 
 			colName = colName.substring(2);
-			if (setterMap.containsKey(colName)) {
-				final ISetter setter = setterMap.get(colName);
+			final ISetter setter = setterMap.get(colName);
+			if (setter != null) {
 				final int columnType = cursor.getType(i);
 				if (columnType != Cursor.FIELD_TYPE_BLOB)
 					setter.set(newObject, cursor.getString(i));
@@ -443,8 +441,9 @@ public class SqLiteCommand {
 
 			while (currentType != Object.class) {
 				final HashMap<Type, AbstractSynchronousLazy<SetFields>> setters = FieldSetter.setters.getObject();
-				if (setters.containsKey(currentType)) {
-					setters.get(currentType).getObject().setFromString(field, object, value);
+				final AbstractSynchronousLazy<SetFields> setter = setters.get(currentType);
+				if (setter != null) {
+					setter.getObject().setFromString(field, object, value);
 					break;
 				}
 				currentType = type.getSuperclass();
@@ -462,6 +461,7 @@ public class SqLiteCommand {
 			}
 		}
 
+		@SuppressWarnings({"unchecked", "rawtypes"})
 		private static final AbstractSynchronousLazy<HashMap<Type, AbstractSynchronousLazy<SetFields>>> setters = new AbstractSynchronousLazy<>() {
 			@Override
 			protected HashMap<Type, AbstractSynchronousLazy<SetFields>> create() {
@@ -665,7 +665,8 @@ public class SqLiteCommand {
 		}
 	}
 
-	private static class MethodSetter implements ISetter {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static class MethodSetter implements ISetter {
 		private final Method method;
 		private final Class<?> type;
 
@@ -677,8 +678,9 @@ public class SqLiteCommand {
 		public void set(Object object, String value) {
 			Class<?> currentType = type;
 			while (currentType != Object.class) {
-				if (setters.getObject().containsKey(currentType)) {
-					setters.getObject().get(currentType).getObject().setFromString(method, object, value);
+				final AbstractSynchronousLazy<SetMethods> setter = setters.getObject().get(currentType);
+				if (setter != null) {
+					setter.getObject().setFromString(method, object, value);
 					break;
 				}
 				currentType = type.getSuperclass();
@@ -689,13 +691,11 @@ public class SqLiteCommand {
 		public void set(Object object, byte[] value) {
 			if (type == byte[].class) {
 				try {
-					method.invoke(object, value);
-				} catch (IllegalAccessException e) {
-					throw new RuntimeException(e);
-				} catch (InvocationTargetException e) {
+					method.invoke(object, (Object) value);
+				} catch (IllegalAccessException | InvocationTargetException e) {
 					throw new RuntimeException(e);
 				}
-			}
+            }
 		}
 
 		private static final AbstractSynchronousLazy<HashMap<Class<?>, AbstractSynchronousLazy<SetMethods>>> setters = new AbstractSynchronousLazy<>() {
@@ -710,12 +710,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, parseSqlBoolean(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -725,12 +723,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? parseSqlBoolean(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -741,12 +737,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Short.parseShort(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -756,12 +750,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Short.parseShort(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -772,12 +764,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Integer.parseInt(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -787,12 +777,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Integer.parseInt(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -803,12 +791,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Long.parseLong(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -818,12 +804,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Long.parseLong(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -834,12 +818,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Float.parseFloat(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -849,12 +831,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Float.parseFloat(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -865,12 +845,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Double.parseDouble(value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -880,12 +858,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, isSqlValueNotNull(value) ? Double.parseDouble(value) : null);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -895,12 +871,10 @@ public class SqLiteCommand {
 						return (method, target, value) -> {
 							try {
 								method.invoke(target, value);
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
@@ -911,12 +885,10 @@ public class SqLiteCommand {
 							try {
 								if (isSqlValueNotNull(value))
 									method.invoke(target, Enum.valueOf((Class<? extends Enum>) method.getParameterTypes()[0], value));
-							} catch (IllegalAccessException e) {
-								throw new RuntimeException(e);
-							} catch (InvocationTargetException e) {
+							} catch (IllegalAccessException | InvocationTargetException e) {
 								throw new RuntimeException(e);
 							}
-						};
+                        };
 					}
 				});
 
