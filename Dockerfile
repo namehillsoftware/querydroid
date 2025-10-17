@@ -27,8 +27,8 @@ RUN curl -sSL https://dl.google.com/android/repository/${SDK_VERSION} -o /tmp/sd
     && yes | sdkmanager --licenses
 
 # Set these to the same versions as in build.gradle to avoid downloading updated tools
-ARG ANDROID_BUILD_VERSION=33
-ARG ANDROID_TOOLS_VERSION=33.0.1
+ARG ANDROID_BUILD_VERSION=36
+ARG ANDROID_TOOLS_VERSION=36.0.0
 
 # Full reference at https://dl.google.com/android/repository/repository2-1.xml
 # download and unpack android
